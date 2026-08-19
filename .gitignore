@@ -43,6 +43,9 @@ Thumbs.db
 # Maven
 .mvn/wrapper/maven-wrapper.jar
 
+# AI tooling context
+llm_ctx/
+
 # AI tooling and configs
 .kilo/
 .kilocode/

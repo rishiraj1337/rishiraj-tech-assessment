@@ -3,7 +3,7 @@ package com.github.rishiraj1337.momentum.service;
 import com.github.rishiraj1337.momentum.dto.CreateUserRequest;
 import com.github.rishiraj1337.momentum.dto.UserResponse;
 import com.github.rishiraj1337.momentum.entity.User;
-import com.github.rishiraj1337.momentum.exception.UserNotFoundException;
+import com.github.rishiraj1337.momentum.exception.ResourceNotFoundException;
 import com.github.rishiraj1337.momentum.mapper.UserMapper;
 import com.github.rishiraj1337.momentum.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -49,7 +49,7 @@ public class UserService {
     }
 
     private User getUser(Long id) {
-        return userRepository.findById(id).orElseThrow(() -> new UserNotFoundException(id));
+        return userRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("User", id));
     }
 
     private void applyRequest(User user, CreateUserRequest request) {

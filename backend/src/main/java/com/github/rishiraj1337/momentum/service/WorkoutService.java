@@ -9,6 +9,8 @@ import com.github.rishiraj1337.momentum.mapper.WorkoutMapper;
 import com.github.rishiraj1337.momentum.repository.UserRepository;
 import com.github.rishiraj1337.momentum.repository.WorkoutRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,8 +35,8 @@ public class WorkoutService {
     }
 
     @Transactional(readOnly = true)
-    public List<WorkoutResponse> findAll() {
-        return workoutRepository.findAll().stream().map(workoutMapper::toResponse).toList();
+    public Page<WorkoutResponse> findAll(Pageable pageable) {
+        return workoutRepository.findAll(pageable).map(workoutMapper::toResponse);
     }
 
     @Transactional(readOnly = true)

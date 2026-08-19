@@ -5,6 +5,9 @@ import com.github.rishiraj1337.momentum.dto.WorkoutResponse;
 import com.github.rishiraj1337.momentum.service.WorkoutService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -31,8 +34,8 @@ public class WorkoutController {
     }
 
     @GetMapping
-    public List<WorkoutResponse> getAll() {
-        return workoutService.findAll();
+    public Page<WorkoutResponse> getAll(@PageableDefault(size = 10) Pageable pageable) {
+        return workoutService.findAll(pageable);
     }
 
     @GetMapping("/{id}")

@@ -48,7 +48,7 @@ public class UserService {
         userRepository.delete(getUser(id));
     }
 
-    private User getUser(Long id) {
+    public User getUser(Long id) {
         return userRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("User", id));
     }
 

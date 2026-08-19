@@ -1,15 +1,31 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Box, TextField, Button, Typography } from '@mui/material';
+import api from '../api';
 
 export default function LoginPage() {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
 
-  const handleLogin = () => {
-    sessionStorage.setItem('authed', 'true');
-    navigate('/dashboard', { replace: true });
+  const AUTH_ENABLED = import.meta.env.VITE_AUTH_ENABLED === 'true';
+
+  const handleLogin = async () => {
+    if (!AUTH_ENABLED) {
+      sessionStorage.setItem('authed', 'true');
+      navigate('/dashboard', { replace: true });
+      return;
+    }
+
+    try {
+      const res = await api.post('/api/auth/login', { email, password });
+      sessionStorage.setItem('jwt', res.data.token);
+      sessionStorage.setItem('authed', 'true');
+      navigate('/dashboard', { replace: true });
+    } catch {
+      setError('Invalid email or password');
+    }
   };
 
   return (
@@ -36,6 +52,11 @@ export default function LoginPage() {
         <Typography variant="body2" color="#a0a0a0" mb={3}>
           sign in to continue
         </Typography>
+        {error && (
+          <Typography color="#ff0080" mb={2} variant="body2">
+            {error}
+          </Typography>
+        )}
         <TextField
           fullWidth
           label="email"

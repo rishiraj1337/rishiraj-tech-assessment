@@ -1,0 +1,4 @@
+app:
+  seed:
+    # Only used when no interactive input is provided
+    user-count: 5

@@ -2,8 +2,10 @@ package com.github.rishiraj1337.momentum.controller;
 
 import com.github.rishiraj1337.momentum.dto.CreateUserRequest;
 import com.github.rishiraj1337.momentum.dto.UserResponse;
+import com.github.rishiraj1337.momentum.dto.WeeklySummaryResponse;
 import com.github.rishiraj1337.momentum.dto.WorkoutResponse;
 import com.github.rishiraj1337.momentum.service.UserService;
+import com.github.rishiraj1337.momentum.service.WeeklySummaryService;
 import com.github.rishiraj1337.momentum.service.WorkoutService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +29,7 @@ public class UserController {
 
     private final UserService userService;
     private final WorkoutService workoutService;
+    private final WeeklySummaryService weeklySummaryService;
 
     @PostMapping
     public ResponseEntity<UserResponse> create(@Valid @RequestBody CreateUserRequest request) {
@@ -58,5 +61,10 @@ public class UserController {
     public List<WorkoutResponse> getUserWorkouts(@PathVariable Long id) {
         userService.findById(id);
         return workoutService.findByUserId(id);
+    }
+
+    @GetMapping("/{id}/weekly-summary")
+    public WeeklySummaryResponse getWeeklySummary(@PathVariable Long id) {
+        return weeklySummaryService.getWeeklySummary(id);
     }
 }

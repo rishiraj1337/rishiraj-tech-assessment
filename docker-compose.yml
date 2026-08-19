@@ -19,8 +19,6 @@ services:
   backend:
     build:
       context: ./backend
-      args:
-        SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-default}
     container_name: momentum_backend
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-fitness_tracker}

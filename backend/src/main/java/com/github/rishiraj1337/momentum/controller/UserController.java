@@ -2,7 +2,9 @@ package com.github.rishiraj1337.momentum.controller;
 
 import com.github.rishiraj1337.momentum.dto.CreateUserRequest;
 import com.github.rishiraj1337.momentum.dto.UserResponse;
+import com.github.rishiraj1337.momentum.dto.WorkoutResponse;
 import com.github.rishiraj1337.momentum.service.UserService;
+import com.github.rishiraj1337.momentum.service.WorkoutService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -24,6 +26,7 @@ import java.util.List;
 public class UserController {
 
     private final UserService userService;
+    private final WorkoutService workoutService;
 
     @PostMapping
     public ResponseEntity<UserResponse> create(@Valid @RequestBody CreateUserRequest request) {
@@ -49,5 +52,11 @@ public class UserController {
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         userService.delete(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/{id}/workouts")
+    public List<WorkoutResponse> getUserWorkouts(@PathVariable Long id) {
+        userService.findById(id);
+        return workoutService.findByUserId(id);
     }
 }

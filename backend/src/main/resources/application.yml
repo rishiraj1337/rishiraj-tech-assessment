@@ -10,8 +10,7 @@ spring:
       ddl-auto: ${JPA_HIBERNATE_DDL_AUTO:update}
     show-sql: ${JPA_SHOW_SQL:true}
     properties:
-      hibernate:
-        format_sql: ${HIBERNATE_FORMAT_SQL:true}
+      "[hibernate.format_sql]": ${HIBERNATE_FORMAT_SQL:true}
 
 springdoc:
   api-docs:

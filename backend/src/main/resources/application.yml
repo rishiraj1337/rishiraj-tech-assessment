@@ -28,6 +28,10 @@ jwt:
   secret: ${JWT_SECRET:fitness-tracker-secret-key-change-in-production-123456}
   expiration-ms: ${JWT_EXPIRATION_MS:86400000}
 
+app:
+  auth:
+    enabled: ${APP_AUTH_ENABLED:true}
+
 info:
   app:
     name: momentum

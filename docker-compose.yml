@@ -28,6 +28,7 @@ services:
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-default}
       JWT_SECRET: ${JWT_SECRET:-fitness-tracker-secret-key-change-in-production-123456}
+      APP_AUTH_ENABLED: ${APP_AUTH_ENABLED:-true}
     ports:
       - "${BACKEND_PORT:-8080}:8080"
     depends_on:

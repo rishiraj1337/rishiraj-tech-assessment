@@ -1,4 +1,7 @@
-import { Box, Typography, Card, CardContent, Stack, Avatar } from '@mui/material';
+import { Box, Typography, Card, CardContent, Stack } from '@mui/material';
+
+const AVATAR_URL =
+  'https://api.dicebear.com/9.x/notionists/svg?seed=user@example.com';
 
 export default function UserDetails() {
   return (
@@ -9,19 +12,19 @@ export default function UserDetails() {
       <Card sx={{ mb: 3 }}>
         <CardContent>
           <Stack direction="row" spacing={3} alignItems="center">
-            <Avatar
+            <Box
+              component="img"
+              src={AVATAR_URL}
+              alt="profile"
+              width={80}
+              height={80}
               sx={{
-                width: 80,
-                height: 80,
-                bgcolor: '#ff0080',
                 border: '2px solid #000',
                 boxShadow: '4px 4px 0px #000',
-                fontSize: 32,
-                fontWeight: 700,
+                bgcolor: '#ff0080',
+                borderRadius: 0,
               }}
-            >
-              U
-            </Avatar>
+            />
             <Box>
               <Typography variant="h5" color="#f0f0f0">
                 user

@@ -13,18 +13,12 @@ export default function App() {
     <AuthProvider>
       <BrowserRouter>
         <Routes>
-          {/* Public Auth Routes */}
+          {/* Public */}
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
 
-          {/* Protected Dashboard & App Routes */}
-          <Route
-            element={
-              <AuthGate>
-                <Layout />
-              </AuthGate>
-            }
-          >
+          {/* Protected */}
+          <Route element={<AuthGate><Layout /></AuthGate>}>
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/workouts" element={<Workouts />} />
             <Route path="/user" element={<UserDetails />} />

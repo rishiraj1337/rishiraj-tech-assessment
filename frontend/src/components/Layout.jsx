@@ -1,16 +1,7 @@
 import { useState } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { 
-  LayoutDashboard, 
-  Dumbbell, 
-  User, 
-  LogOut, 
-  Menu, 
-  X, 
-  Flame,
-  Zap
-} from 'lucide-react';
+import { LayoutDashboard, Dumbbell, User, LogOut, Menu, X, Flame } from 'lucide-react';
 
 const NAV_ITEMS = [
   { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
@@ -21,118 +12,110 @@ const NAV_ITEMS = [
 export default function Layout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const handleLogout = () => {
     logout();
     navigate('/login', { replace: true });
   };
 
-  return (
-    <div className="min-h-screen bg-dark-bg text-gray-100 flex flex-col md:flex-row">
-      
-      {/* Mobile Top Navigation Header */}
-      <header className="md:hidden flex items-center justify-between bg-dark-surface p-4 border-b-2 border-black sticky top-0 z-40">
-        <div className="flex items-center space-x-2">
-          <div className="w-8 h-8 bg-neon-cyan border-2 border-black flex items-center justify-center shadow-brutal-sm">
-            <Zap className="w-5 h-5 text-black" />
-          </div>
-          <span className="font-mono font-black text-xl tracking-wider text-neon-cyan uppercase">
-            MOMENTUM
-          </span>
+  // Reusable sidebar content for both mobile and desktop
+  const SidebarContent = () => (
+    <div className="flex flex-col h-full p-5">
+      {/* Brand */}
+      <div className="flex items-center gap-3 mb-10">
+        <div className="w-10 h-10 bg-lime rounded-xl border-2 border-gray-900 shadow-brutal-sm flex items-center justify-center">
+          <Flame className="w-6 h-6 text-gray-900" />
         </div>
-        <button
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          className="p-2 bg-dark-card border-2 border-black text-neon-cyan shadow-brutal-sm active:translate-x-0.5 active:translate-y-0.5"
-          aria-label="Toggle Navigation"
-        >
-          {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-        </button>
-      </header>
-
-      {/* Mobile Backdrop */}
-      {mobileMenuOpen && (
-        <div
-          onClick={() => setMobileMenuOpen(false)}
-          className="md:hidden fixed inset-0 bg-black/80 z-40 backdrop-blur-sm"
-        />
-      )}
-
-      {/* Sidebar (Desktop + Mobile Slide-out) */}
-      <aside
-        className={`fixed md:sticky top-0 left-0 h-screen w-64 bg-dark-surface border-r-2 border-black p-5 flex flex-col justify-between z-50 transition-transform duration-200 ease-in-out ${
-          mobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
-        }`}
-      >
         <div>
-          {/* Brand Logo Header */}
-          <div className="flex items-center space-x-3 mb-8 pt-2">
-            <div className="w-10 h-10 bg-neon-cyan border-2 border-black flex items-center justify-center shadow-brutal">
-              <Flame className="w-6 h-6 text-black" />
+          <h1 className="font-outfit text-xl font-extrabold text-gray-900 leading-none">Momentum</h1>
+          <p className="text-[11px] text-gray-400 font-medium">fitness tracker</p>
+        </div>
+      </div>
+
+      {/* Nav Links */}
+      <nav className="flex-1 space-y-2">
+        {NAV_ITEMS.map(({ label, path, icon: Icon }) => (
+          <NavLink
+            key={path}
+            to={path}
+            onClick={() => setSidebarOpen(false)}
+            className={({ isActive }) =>
+              `flex items-center gap-3 px-4 py-3 rounded-xl border-2 font-outfit font-semibold text-[15px] transition-all ${
+                isActive
+                  ? 'bg-lime text-gray-900 border-gray-900 shadow-brutal'
+                  : 'bg-white text-gray-600 border-transparent hover:border-gray-200 hover:bg-gray-50'
+              }`
+            }
+          >
+            <Icon className="w-5 h-5" />
+            <span>{label}</span>
+          </NavLink>
+        ))}
+      </nav>
+
+      {/* User card + Logout */}
+      <div className="space-y-3 pt-4 border-t border-gray-200">
+        {user && (
+          <div className="flex items-center gap-3 px-2">
+            <div className="w-9 h-9 rounded-full bg-violet/20 flex items-center justify-center border-2 border-violet/30">
+              <span className="text-sm font-bold text-violet">{user.name?.[0]?.toUpperCase() || '?'}</span>
             </div>
-            <div>
-              <h1 className="font-mono font-black text-xl tracking-wider text-neon-cyan leading-none uppercase">
-                MOMENTUM
-              </h1>
-              <span className="text-[10px] font-mono text-gray-400 uppercase tracking-widest">
-                Fitness Tracker
-              </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-gray-900 truncate">{user.name}</p>
+              <p className="text-xs text-gray-400 truncate">{user.email}</p>
             </div>
           </div>
+        )}
+        <button
+          onClick={handleLogout}
+          className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-white border-2 border-gray-200 text-gray-500 font-outfit font-semibold text-sm hover:border-coral hover:text-coral hover:bg-coral/5 transition-all"
+        >
+          <LogOut className="w-4 h-4" />
+          <span>Sign Out</span>
+        </button>
+      </div>
+    </div>
+  );
 
-          {/* Navigation Links */}
-          <nav className="space-y-3">
-            {NAV_ITEMS.map((item) => {
-              const Icon = item.icon;
-              return (
-                <NavLink
-                  key={item.path}
-                  to={item.path}
-                  onClick={() => setMobileMenuOpen(false)}
-                  className={({ isActive }) =>
-                    `flex items-center space-x-3 px-4 py-3 border-2 font-mono font-bold text-sm tracking-wide uppercase transition-all ${
-                      isActive
-                        ? 'bg-neon-cyan text-black border-black shadow-brutal translate-x-1'
-                        : 'bg-dark-card text-gray-300 border-dark-border hover:border-neon-cyan hover:text-neon-cyan hover:shadow-brutal-sm'
-                    }`
-                  }
-                >
-                  <Icon className="w-5 h-5" />
-                  <span>{item.label}</span>
-                </NavLink>
-              );
-            })}
-          </nav>
-        </div>
+  return (
+    <div className="min-h-screen bg-cream font-outfit flex">
 
-        {/* User Info & Logout section */}
-        <div className="pt-4 border-t-2 border-dark-border space-y-4">
-          {user && (
-            <div className="bg-dark-card p-3 border-2 border-black shadow-brutal-sm">
-              <p className="font-mono text-xs text-neon-pink font-bold truncate">
-                {user.name || 'User'}
-              </p>
-              <p className="font-mono text-[11px] text-gray-400 truncate">
-                {user.email}
-              </p>
-            </div>
-          )}
-
-          <button
-            onClick={handleLogout}
-            className="w-full flex items-center justify-center space-x-2 py-2.5 px-4 bg-dark-card border-2 border-neon-pink text-neon-pink font-mono font-bold text-sm uppercase shadow-brutal-sm hover:bg-neon-pink hover:text-white transition-all active:translate-x-0.5 active:translate-y-0.5"
-          >
-            <LogOut className="w-4 h-4" />
-            <span>Sign Out</span>
-          </button>
-        </div>
+      {/* Desktop Sidebar */}
+      <aside className="hidden md:flex w-64 bg-white border-r-2 border-gray-200 flex-col sticky top-0 h-screen">
+        <SidebarContent />
       </aside>
 
-      {/* Main Content Area */}
-      <main className="flex-1 min-h-screen p-4 sm:p-6 lg:p-10 max-w-7xl w-full mx-auto overflow-y-auto">
+      {/* Mobile Header */}
+      <div className="md:hidden fixed top-0 left-0 right-0 z-40 bg-white border-b-2 border-gray-200 px-4 py-3 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 bg-lime rounded-lg border-2 border-gray-900 shadow-brutal-sm flex items-center justify-center">
+            <Flame className="w-5 h-5 text-gray-900" />
+          </div>
+          <span className="font-outfit text-lg font-extrabold text-gray-900">Momentum</span>
+        </div>
+        <button
+          onClick={() => setSidebarOpen(!sidebarOpen)}
+          className="p-2 rounded-xl border-2 border-gray-200 hover:border-gray-900 transition-colors"
+        >
+          {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+        </button>
+      </div>
+
+      {/* Mobile Sidebar Overlay */}
+      {sidebarOpen && (
+        <>
+          <div className="md:hidden fixed inset-0 bg-black/30 z-40" onClick={() => setSidebarOpen(false)} />
+          <div className="md:hidden fixed top-0 left-0 w-72 h-full bg-white z-50 border-r-2 border-gray-200 shadow-brutal-lg">
+            <SidebarContent />
+          </div>
+        </>
+      )}
+
+      {/* Main Content */}
+      <main className="flex-1 min-h-screen md:p-8 p-4 pt-20 md:pt-8 max-w-6xl mx-auto w-full">
         <Outlet />
       </main>
-
     </div>
   );
 }

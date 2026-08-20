@@ -58,11 +58,15 @@ export default function Layout() {
       <div className="space-y-3 pt-4 border-t border-gray-200">
         {user && (
           <div className="flex items-center gap-3 px-2">
-            <div className="w-9 h-9 rounded-full bg-violet/20 flex items-center justify-center border-2 border-violet/30">
-              <span className="text-sm font-bold text-violet">{user.name?.[0]?.toUpperCase() || '?'}</span>
+            <div className="w-10 h-10 rounded-xl bg-sand border-2 border-gray-900 shadow-brutal-sm overflow-hidden flex-shrink-0">
+              <img
+                src={`https://api.dicebear.com/9.x/notionists/svg?seed=${encodeURIComponent(user.email || 'athlete')}&backgroundColor=bbf7d0,bfdbfe,fed7aa`}
+                alt="User Avatar"
+                className="w-full h-full object-cover"
+              />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold text-gray-900 truncate">{user.name}</p>
+              <p className="text-sm font-bold text-gray-900 truncate">{user.name}</p>
               <p className="text-xs text-gray-400 truncate">{user.email}</p>
             </div>
           </div>

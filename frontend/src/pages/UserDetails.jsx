@@ -1,24 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import api from '../api';
-import ProfileIllustration from '../components/illustrations/ProfileIllustration';
-import { 
-  User, 
-  Mail, 
-  Target, 
-  Calendar, 
-  Edit3, 
-  X, 
-  CheckCircle, 
-  AlertCircle,
-  Flame,
-  Award,
-  Zap
-} from 'lucide-react';
+import { User, Mail, Target, Edit3, X, CheckCircle, Dumbbell, Award, ShieldCheck, AlertCircle } from 'lucide-react';
 
-const GOAL_OPTIONS = [
+const GOALS = [
   { value: 'running', label: 'Running (Distance in km)' },
-  { value: 'strength', label: 'Strength / Weightlifting (kg)' },
+  { value: 'strength', label: 'Strength Training (Weight in kg)' },
   { value: 'cardio', label: 'Cardio (Active minutes)' },
   { value: 'cycling', label: 'Cycling (Distance in km)' },
   { value: 'crossfit', label: 'Crossfit (Workouts count)' },
@@ -26,58 +13,54 @@ const GOAL_OPTIONS = [
 
 export default function UserDetails() {
   const { user, updateUser } = useAuth();
-  
-  const [profileData, setProfileData] = useState(user);
+
+  const [profile, setProfile] = useState(user);
   const [workoutCount, setWorkoutCount] = useState(0);
   const [loading, setLoading] = useState(true);
-  
-  // Edit Profile Modal state
-  const [isEditing, setIsEditing] = useState(false);
+
+  // Edit modal
+  const [editing, setEditing] = useState(false);
   const [name, setName] = useState(user?.name || '');
   const [goalType, setGoalType] = useState(user?.goalType || 'running');
-  const [targetValue, setTargetValue] = useState(String(user?.targetValue || '50'));
-  const [feedback, setFeedback] = useState({ error: '', success: '' });
+  const [targetValue, setTargetValue] = useState(String(user?.targetValue || 50));
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [saving, setSaving] = useState(false);
 
-  // Fetch full user profile & total workouts count
   useEffect(() => {
     if (!user?.id) return;
-    
-    const fetchUserData = async () => {
+    const load = async () => {
       setLoading(true);
       try {
-        const [userRes, workoutsRes] = await Promise.all([
+        const [u, w] = await Promise.all([
           api.get(`/api/users/${user.id}`),
-          api.get(`/api/users/${user.id}/workouts`)
+          api.get(`/api/users/${user.id}/workouts`),
         ]);
-        setProfileData(userRes.data);
-        setWorkoutCount(workoutsRes.data?.length || 0);
-        setName(userRes.data.name || '');
-        setGoalType(userRes.data.goalType || 'running');
-        setTargetValue(String(userRes.data.targetValue || '50'));
+        setProfile(u.data);
+        setWorkoutCount(w.data?.length || 0);
+        setName(u.data.name || '');
+        setGoalType(u.data.goalType || 'running');
+        setTargetValue(String(u.data.targetValue || 50));
       } catch (err) {
-        console.error('Failed to load user details', err);
+        console.error('Failed to load user profile', err);
       } finally {
         setLoading(false);
       }
     };
-
-    fetchUserData();
+    load();
   }, [user]);
 
-  // Handle Profile Update Submission
-  const handleUpdateProfile = async (e) => {
+  const handleSave = async (e) => {
     e.preventDefault();
-    setFeedback({ error: '', success: '' });
-
+    setError('');
+    setSuccess('');
     if (!name.trim()) {
-      setFeedback({ error: 'Name is required.', success: '' });
+      setError('Name is required.');
       return;
     }
-
-    const numTarget = parseFloat(targetValue);
-    if (isNaN(numTarget) || numTarget <= 0) {
-      setFeedback({ error: 'Weekly target must be a positive number.', success: '' });
+    const t = parseFloat(targetValue);
+    if (isNaN(t) || t <= 0) {
+      setError('Target value must be a positive number.');
       return;
     }
 
@@ -85,261 +68,202 @@ export default function UserDetails() {
     try {
       const res = await api.put(`/api/users/${user.id}`, {
         name: name.trim(),
-        email: profileData?.email,
+        email: profile?.email,
         goalType,
-        targetValue: numTarget,
+        targetValue: t,
       });
-
-      setProfileData(res.data);
+      setProfile(res.data);
       updateUser(res.data);
-      setFeedback({ error: '', success: 'Profile updated successfully!' });
+      setSuccess('Profile updated successfully.');
       setTimeout(() => {
-        setIsEditing(false);
-        setFeedback({ error: '', success: '' });
+        setEditing(false);
+        setSuccess('');
       }, 1000);
     } catch (err) {
-      setFeedback({
-        error: err.response?.data?.message || 'Failed to update profile.',
-        success: '',
-      });
+      setError(err.response?.data?.message || 'Failed to update profile.');
     } finally {
       setSaving(false);
     }
   };
 
-  const avatarUrl = `https://api.dicebear.com/9.x/notionists/svg?seed=${encodeURIComponent(profileData?.email || 'user')}`;
+  const initial = profile?.name?.[0]?.toUpperCase() || 'U';
 
   return (
-    <div className="space-y-8 max-w-5xl">
-      
-      {/* Page Title */}
-      <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
-        <div>
-          <div className="flex items-center space-x-2">
-            <User className="w-7 h-7 text-neon-pink" />
-            <h1 className="font-mono font-black text-3xl text-gray-100 uppercase">
-              Athlete Profile
-            </h1>
-          </div>
-          <p className="font-mono text-xs text-gray-400 mt-1">
-            Manage your personal metrics and fitness targets.
-          </p>
-        </div>
-
+    <div className="space-y-6 font-outfit max-w-3xl">
+      {/* Page Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <h1 className="text-3xl font-black text-gray-900 flex items-center gap-2.5">
+          <User className="w-8 h-8 text-gray-900" />
+          <span>Athlete Profile</span>
+        </h1>
         <button
-          onClick={() => setIsEditing(true)}
-          className="inline-flex items-center space-x-2 px-5 py-2.5 bg-dark-card border-2 border-neon-cyan text-neon-cyan font-mono font-bold text-xs uppercase shadow-brutal hover:bg-neon-cyan hover:text-black transition-all active:translate-x-0.5 active:translate-y-0.5"
+          onClick={() => setEditing(true)}
+          className="flex items-center gap-2 px-5 py-2.5 bg-white border-2 border-gray-900 rounded-xl text-gray-900 font-bold text-sm shadow-brutal-sm hover:bg-lime hover:shadow-brutal transition-all active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
         >
           <Edit3 className="w-4 h-4" />
           <span>Edit Profile</span>
         </button>
       </div>
 
-      {/* Main Profile Card Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
-        {/* Left Column: Avatar & Basic Info */}
-        <div className="bg-dark-surface p-6 border-2 border-black shadow-neon-pink flex flex-col items-center text-center space-y-4">
-          <div className="w-28 h-28 bg-neon-pink border-2 border-black shadow-brutal overflow-hidden">
-            <img
-              src={avatarUrl}
-              alt="Athlete Avatar"
-              className="w-full h-full object-cover"
-            />
-          </div>
+      {/* Profile Card */}
+      <div className="bg-white border-2 border-gray-900 rounded-2xl shadow-brutal overflow-hidden">
+        {/* Banner */}
+        <div className="h-24 bg-gradient-to-r from-lime via-sky to-violet" />
 
-          <div>
-            <h2 className="font-mono font-black text-2xl text-gray-100 uppercase">
-              {profileData?.name || 'Athlete'}
-            </h2>
-            <div className="flex items-center justify-center space-x-1.5 font-mono text-xs text-neon-cyan mt-1">
-              <Mail className="w-3.5 h-3.5" />
-              <span>{profileData?.email || 'N/A'}</span>
+        <div className="px-6 pb-6">
+          {/* Avatar */}
+          <div className="-mt-12 mb-4 flex items-end gap-4">
+            <div className="w-20 h-20 rounded-2xl bg-white border-2 border-gray-900 shadow-brutal-sm flex items-center justify-center">
+              <span className="text-3xl font-black text-gray-900">{initial}</span>
+            </div>
+            <div className="pb-1">
+              <h2 className="text-2xl font-extrabold text-gray-900">{profile?.name || 'Athlete'}</h2>
+              <p className="text-sm text-gray-500 font-medium flex items-center gap-1.5">
+                <Mail className="w-3.5 h-3.5" />
+                <span>{profile?.email}</span>
+              </p>
             </div>
           </div>
 
-          <div className="w-full pt-4 border-t border-dark-border">
-            <div className="inline-flex items-center space-x-2 px-3 py-1 bg-neon-pink/10 border border-neon-pink text-neon-pink font-mono text-xs font-bold uppercase">
-              <Flame className="w-3.5 h-3.5" />
-              <span>{profileData?.goalType || 'Fitness'} Focus</span>
+          {/* Stats grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="bg-lime/20 border-2 border-lime rounded-xl p-4 text-center">
+              <div className="flex items-center justify-center gap-1.5 text-xs font-bold text-gray-700 uppercase mb-1">
+                <Dumbbell className="w-3.5 h-3.5" />
+                <span>Total Workouts</span>
+              </div>
+              <p className="text-2xl font-black text-gray-900">{workoutCount}</p>
+            </div>
+            <div className="bg-violet/20 border-2 border-violet rounded-xl p-4 text-center">
+              <div className="flex items-center justify-center gap-1.5 text-xs font-bold text-gray-700 uppercase mb-1">
+                <Award className="w-3.5 h-3.5" />
+                <span>Training Focus</span>
+              </div>
+              <p className="text-2xl font-black text-gray-900 capitalize">{profile?.goalType || 'General'}</p>
+            </div>
+            <div className="bg-sky/20 border-2 border-sky rounded-xl p-4 text-center">
+              <div className="flex items-center justify-center gap-1.5 text-xs font-bold text-gray-700 uppercase mb-1">
+                <Target className="w-3.5 h-3.5" />
+                <span>Weekly Target</span>
+              </div>
+              <p className="text-2xl font-black text-gray-900">{profile?.targetValue || 0} units</p>
             </div>
           </div>
         </div>
-
-        {/* Right 2 Columns: Metrics & Details */}
-        <div className="lg:col-span-2 space-y-6">
-          
-          {/* Stats Overview */}
-          <div className="bg-dark-surface p-6 border-2 border-black shadow-brutal space-y-4">
-            <h3 className="font-mono font-black text-lg text-gray-100 uppercase flex items-center space-x-2">
-              <Award className="w-5 h-5 text-neon-yellow" />
-              <span>Fitness Milestones</span>
-            </h3>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="bg-dark-card p-4 border-2 border-black shadow-brutal-sm">
-                <span className="font-mono text-xs text-gray-400 uppercase font-bold">Total Workouts Logged</span>
-                <p className="font-mono font-black text-3xl text-neon-cyan mt-1">
-                  {workoutCount}
-                </p>
-              </div>
-
-              <div className="bg-dark-card p-4 border-2 border-black shadow-brutal-sm">
-                <span className="font-mono text-xs text-gray-400 uppercase font-bold">Current Weekly Target</span>
-                <p className="font-mono font-black text-3xl text-neon-pink mt-1">
-                  {profileData?.targetValue || 0} <span className="text-xs text-gray-400 font-normal">units</span>
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Account Details Box */}
-          <div className="bg-dark-surface p-6 border-2 border-black shadow-brutal space-y-3 font-mono text-xs">
-            <h3 className="font-black text-sm text-neon-cyan uppercase">Account Details</h3>
-            <div className="space-y-2 text-gray-300">
-              <div className="flex justify-between py-1.5 border-b border-dark-border">
-                <span className="text-gray-500 uppercase">User ID</span>
-                <span className="font-bold">#{profileData?.id || user?.id}</span>
-              </div>
-              <div className="flex justify-between py-1.5 border-b border-dark-border">
-                <span className="text-gray-500 uppercase">Member Since</span>
-                <span>{profileData?.createdAt ? new Date(profileData.createdAt).toLocaleDateString() : 'August 2026'}</span>
-              </div>
-              <div className="flex justify-between py-1.5">
-                <span className="text-gray-500 uppercase">Security Token</span>
-                <span className="text-neon-green font-bold">Active &bull; JWT Protected</span>
-              </div>
-            </div>
-          </div>
-
-        </div>
-
       </div>
 
-      {/* Undraw Illustration Banner */}
-      <div className="bg-dark-surface border-2 border-black p-6 shadow-brutal flex flex-col md:flex-row items-center justify-between gap-6">
-        <div className="space-y-2 max-w-md">
-          <div className="flex items-center space-x-2 text-neon-cyan font-mono font-bold text-xs uppercase">
-            <Zap className="w-4 h-4" />
-            <span>Athletic Consistency</span>
-          </div>
-          <h3 className="font-mono font-black text-xl text-gray-100 uppercase">
-            Build Habits. Crush Targets.
-          </h3>
-          <p className="font-mono text-xs text-gray-400">
-            Keep your profile focus up to date to see accurate weekly percentage completion on your dashboard.
-          </p>
-        </div>
-        <div className="w-full md:w-64 flex-shrink-0">
-          <ProfileIllustration className="w-full h-auto max-h-36" />
+      {/* Account Details */}
+      <div className="bg-white border-2 border-gray-200 rounded-2xl p-6">
+        <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+          <ShieldCheck className="w-5 h-5 text-gray-900" />
+          <span>Account Details</span>
+        </h3>
+        <div className="space-y-3 text-sm">
+          {[
+            ['User ID', `#${profile?.id || user?.id}`],
+            ['Account Created', profile?.createdAt ? new Date(profile.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : 'Not set'],
+            ['Last Updated', profile?.updatedAt ? new Date(profile.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Not set'],
+            ['Authentication Status', 'Active (JWT Protected)'],
+          ].map(([label, value]) => (
+            <div key={label} className="flex justify-between items-center py-2 border-b border-gray-100 last:border-0">
+              <span className="text-gray-500 font-medium">{label}</span>
+              <span className="font-semibold text-gray-900">{value}</span>
+            </div>
+          ))}
         </div>
       </div>
 
       {/* Edit Profile Modal */}
-      {isEditing && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xs">
-          <div className="bg-dark-surface border-2 border-black p-6 sm:p-8 max-w-md w-full shadow-neon-pink">
-            
+      {editing && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30 backdrop-blur-sm" onClick={() => setEditing(false)}>
+          <div className="bg-white border-2 border-gray-900 rounded-2xl p-6 sm:p-8 max-w-md w-full shadow-brutal-lg" onClick={(e) => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-6">
-              <h2 className="font-mono font-black text-xl text-gray-100 uppercase">
-                Edit Profile
+              <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                <Edit3 className="w-5 h-5 text-lime" />
+                <span>Edit Profile</span>
               </h2>
-              <button
-                onClick={() => setIsEditing(false)}
-                className="p-1.5 bg-dark-card border-2 border-black text-gray-400 hover:text-neon-pink shadow-brutal-sm"
-              >
+              <button onClick={() => setEditing(false)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-900">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            {feedback.error && (
-              <div className="mb-4 p-3 bg-neon-pink/10 border-2 border-neon-pink text-neon-pink font-mono text-xs font-bold flex items-center space-x-2 shadow-brutal-sm">
+            {error && (
+              <div className="mb-4 p-3 bg-coral/10 border-2 border-coral rounded-xl text-coral text-sm font-semibold flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                <span>{feedback.error}</span>
+                <span>{error}</span>
+              </div>
+            )}
+            {success && (
+              <div className="mb-4 p-3 bg-lime/20 border-2 border-lime rounded-xl text-green-800 text-sm font-semibold flex items-center gap-2">
+                <CheckCircle className="w-4 h-4" />
+                <span>{success}</span>
               </div>
             )}
 
-            {feedback.success && (
-              <div className="mb-4 p-3 bg-neon-green/10 border-2 border-neon-green text-neon-green font-mono text-xs font-bold flex items-center space-x-2 shadow-brutal-sm">
-                <CheckCircle className="w-4 h-4 flex-shrink-0" />
-                <span>{feedback.success}</span>
-              </div>
-            )}
-
-            <form onSubmit={handleUpdateProfile} className="space-y-4">
-              
-              {/* Name Field */}
+            <form onSubmit={handleSave} className="space-y-4">
               <div>
-                <label className="block font-mono text-xs font-bold uppercase text-gray-300 mb-1">
-                  Full Name *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="w-full px-3 py-2 bg-dark-card border-2 border-black text-gray-100 font-mono text-sm shadow-brutal-sm focus:border-neon-pink focus:outline-none"
-                />
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Full Name</label>
+                <div className="relative">
+                  <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <input
+                    type="text"
+                    required
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="w-full pl-11 pr-4 py-2.5 bg-cream border-2 border-gray-200 rounded-xl font-medium focus:border-gray-900 focus:outline-none"
+                  />
+                </div>
               </div>
 
-              {/* Goal Type */}
               <div>
-                <label className="block font-mono text-xs font-bold uppercase text-gray-300 mb-1">
-                  Fitness Focus
-                </label>
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Training Focus</label>
                 <select
                   value={goalType}
                   onChange={(e) => setGoalType(e.target.value)}
-                  className="w-full px-3 py-2 bg-dark-card border-2 border-black text-gray-100 font-mono text-xs shadow-brutal-sm focus:border-neon-pink focus:outline-none"
+                  className="w-full px-4 py-2.5 bg-cream border-2 border-gray-200 rounded-xl font-medium focus:border-gray-900 focus:outline-none"
                 >
-                  {GOAL_OPTIONS.map((g) => (
-                    <option key={g.value} value={g.value} className="bg-dark-card">
-                      {g.label}
-                    </option>
+                  {GOALS.map((g) => (
+                    <option key={g.value} value={g.value}>{g.label}</option>
                   ))}
                 </select>
               </div>
 
-              {/* Target Value */}
               <div>
-                <label className="block font-mono text-xs font-bold uppercase text-gray-300 mb-1">
-                  Weekly Target (Units) *
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  step="any"
-                  required
-                  value={targetValue}
-                  onChange={(e) => setTargetValue(e.target.value)}
-                  className="w-full px-3 py-2 bg-dark-card border-2 border-black text-gray-100 font-mono text-sm shadow-brutal-sm focus:border-neon-pink focus:outline-none"
-                />
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Weekly Target (Units)</label>
+                <div className="relative">
+                  <Target className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <input
+                    type="number"
+                    min="1"
+                    step="any"
+                    required
+                    value={targetValue}
+                    onChange={(e) => setTargetValue(e.target.value)}
+                    className="w-full pl-11 pr-4 py-2.5 bg-cream border-2 border-gray-200 rounded-xl font-medium focus:border-gray-900 focus:outline-none"
+                  />
+                </div>
               </div>
 
-              {/* Buttons */}
-              <div className="pt-4 flex items-center justify-end space-x-3">
+              <div className="flex gap-3 pt-2">
                 <button
                   type="button"
-                  onClick={() => setIsEditing(false)}
-                  className="px-4 py-2 bg-dark-card border-2 border-black text-gray-400 font-mono font-bold text-xs uppercase shadow-brutal-sm hover:text-white"
+                  onClick={() => setEditing(false)}
+                  className="flex-1 py-2.5 bg-cream border-2 border-gray-200 rounded-xl text-gray-600 font-semibold text-sm hover:border-gray-900 hover:text-gray-900 transition-all"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={saving}
-                  className="px-5 py-2 bg-neon-pink border-2 border-black text-white font-mono font-bold text-xs uppercase shadow-brutal hover:bg-white hover:text-black transition-all active:translate-x-0.5 active:translate-y-0.5 disabled:opacity-50"
+                  className="flex-1 py-2.5 bg-gray-900 text-white border-2 border-gray-900 rounded-xl font-bold text-sm shadow-brutal-lime hover:bg-lime hover:text-gray-900 transition-all active:translate-x-0.5 active:translate-y-0.5 active:shadow-none disabled:opacity-50"
                 >
                   {saving ? 'Saving...' : 'Save Changes'}
                 </button>
               </div>
-
             </form>
-
           </div>
         </div>
       )}
-
     </div>
   );
 }

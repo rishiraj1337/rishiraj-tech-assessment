@@ -48,13 +48,20 @@ public class DataSeeder implements CommandLineRunner {
     }
 
     private int askUserCount() {
-        try (Scanner scanner = new Scanner(System.in)) {
+        if (System.console() == null) {
+            log.info("Non-interactive environment detected, using default seed count {}", defaultUserCount);
+            return defaultUserCount;
+        }
+        try {
+            Scanner scanner = new Scanner(System.in);
             System.out.print("How many users to seed? [default " + defaultUserCount + "]: ");
-            String input = scanner.hasNextLine() ? scanner.nextLine().trim() : "";
-            if (input.isEmpty()) {
-                return defaultUserCount;
+            if (scanner.hasNextLine()) {
+                String input = scanner.nextLine().trim();
+                if (!input.isEmpty()) {
+                    return Integer.parseInt(input);
+                }
             }
-            return Integer.parseInt(input);
+            return defaultUserCount;
         } catch (Exception e) {
             log.warn("Could not read user count interactively, using default {}", defaultUserCount);
             return defaultUserCount;

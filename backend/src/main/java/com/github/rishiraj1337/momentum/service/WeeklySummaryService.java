@@ -8,6 +8,7 @@ import com.github.rishiraj1337.momentum.repository.UserRepository;
 import com.github.rishiraj1337.momentum.repository.WorkoutRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
@@ -21,6 +22,7 @@ public class WeeklySummaryService {
     private final UserRepository userRepository;
     private final WorkoutRepository workoutRepository;
 
+    @Transactional(readOnly = true)
     public WeeklySummaryResponse getWeeklySummary(Long userId) {
         // TODO: need to revisit later to handle edge cases (timezone, custom week start, mid-week goal changes)
         User user = userRepository.findById(userId)

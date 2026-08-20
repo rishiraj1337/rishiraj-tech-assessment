@@ -1,6 +1,7 @@
 package com.github.rishiraj1337.momentum.controller;
 
 import com.github.rishiraj1337.momentum.dto.CreateUserRequest;
+import com.github.rishiraj1337.momentum.dto.UpdateUserRequest;
 import com.github.rishiraj1337.momentum.dto.UserResponse;
 import com.github.rishiraj1337.momentum.dto.WeeklySummaryResponse;
 import com.github.rishiraj1337.momentum.dto.WorkoutResponse;
@@ -47,7 +48,7 @@ public class UserController {
     }
 
     @PutMapping("/{id}")
-    public UserResponse update(@PathVariable Long id, @Valid @RequestBody CreateUserRequest request) {
+    public UserResponse update(@PathVariable Long id, @Valid @RequestBody UpdateUserRequest request) {
         return userService.update(id, request);
     }
 

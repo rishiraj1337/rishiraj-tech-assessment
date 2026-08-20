@@ -48,7 +48,7 @@ public class WorkoutService {
     public WorkoutResponse update(Long id, CreateWorkoutRequest request) {
         WorkoutLog workout = getWorkout(id);
         applyRequest(workout, request);
-        if (!workout.getUser().getId().equals(request.userId())) {
+        if (request.userId() != null && (workout.getUser() == null || !workout.getUser().getId().equals(request.userId()))) {
             User user = userRepository.findById(request.userId())
                     .orElseThrow(() -> new ResourceNotFoundException("User", request.userId()));
             workout.setUser(user);

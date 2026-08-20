@@ -77,6 +77,11 @@ public class WorkoutService {
         workout.setWorkoutDate(request.workoutDate());
         workout.setActivity(request.activity());
         workout.setDuration(request.duration());
-        workout.setValueAchieved(request.valueAchieved());
+        if (request.valueAchieved() != null) {
+            workout.setValueAchieved(request.valueAchieved());
+        } else {
+            // Default value achieved to duration if not explicitly specified
+            workout.setValueAchieved(request.duration() != null ? request.duration().doubleValue() : 0.0);
+        }
     }
 }

@@ -3,9 +3,11 @@ package com.github.rishiraj1337.momentum.exception;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -29,11 +31,22 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(body);
     }
 
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<Map<String, Object>> handleIllegalArgument(IllegalArgumentException ex) {
+        Map<String, Object> body = new LinkedHashMap<>();
+        HttpStatus status = ex.getMessage() != null && ex.getMessage().toLowerCase().contains("already in use")
+                ? HttpStatus.CONFLICT
+                : HttpStatus.BAD_REQUEST;
+        body.put("status", status.value());
+        body.put("message", ex.getMessage());
+        return ResponseEntity.status(status).body(body);
+    }
+
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<Map<String, Object>> handleDuplicate(DataIntegrityViolationException ex) {
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("status", HttpStatus.CONFLICT.value());
-        body.put("message", "Email already in use");
+        body.put("message", "Database constraint violation");
         return ResponseEntity.status(HttpStatus.CONFLICT).body(body);
     }
 
@@ -44,6 +57,22 @@ public class GlobalExceptionHandler {
         body.put("errors", ex.getBindingResult().getFieldErrors().stream()
                 .map(error -> error.getField() + ": " + error.getDefaultMessage())
                 .toList());
+        return ResponseEntity.badRequest().body(body);
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<Map<String, Object>> handleMessageNotReadable(HttpMessageNotReadableException ex) {
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("status", HttpStatus.BAD_REQUEST.value());
+        body.put("message", "Malformed JSON request or invalid parameter format");
+        return ResponseEntity.badRequest().body(body);
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<Map<String, Object>> handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("status", HttpStatus.BAD_REQUEST.value());
+        body.put("message", "Invalid parameter value for: " + ex.getName());
         return ResponseEntity.badRequest().body(body);
     }
 

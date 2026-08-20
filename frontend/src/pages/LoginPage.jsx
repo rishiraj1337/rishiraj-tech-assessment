@@ -1,13 +1,19 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import AuthIllustration from '../components/illustrations/AuthIllustration';
-import { Zap, Lock, Mail, ArrowRight, AlertCircle } from 'lucide-react';
+import { Mail, Lock, ArrowRight, Flame, Target, Dumbbell, TrendingUp, Zap } from 'lucide-react';
+
+const HIGHLIGHTS = [
+  { icon: Target, label: 'Weekly Goals' },
+  { icon: Dumbbell, label: 'Workout Logs' },
+  { icon: TrendingUp, label: 'Progress Tracking' },
+  { icon: Zap, label: 'Fast and Simple' },
+];
 
 export default function LoginPage() {
   const navigate = useNavigate();
   const { login } = useAuth();
-  
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -18,7 +24,7 @@ export default function LoginPage() {
     setError('');
 
     if (!email.trim() || !password) {
-      setError('Please enter both email and password.');
+      setError('Please enter your email and password.');
       return;
     }
 
@@ -27,123 +33,110 @@ export default function LoginPage() {
       await login(email.trim(), password);
       navigate('/dashboard', { replace: true });
     } catch (err) {
-      setError(
-        err.response?.data?.message ||
-        'Invalid email or password. Please verify your credentials.'
-      );
+      setError(err.response?.data?.message || 'Invalid email or password.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-dark-bg text-gray-100 flex items-center justify-center p-4 sm:p-6 lg:p-8">
-      <div className="w-full max-w-4xl grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
-        
-        {/* Left Side: Brand Banner & Undraw Illustration */}
-        <div className="hidden lg:flex flex-col justify-center space-y-6 p-6">
-          <div className="flex items-center space-x-3">
-            <div className="w-12 h-12 bg-neon-cyan border-2 border-black flex items-center justify-center shadow-brutal">
-              <Zap className="w-8 h-8 text-black" />
+    <div className="min-h-screen bg-cream font-outfit flex">
+      {/* Left decorative panel - hidden on mobile */}
+      <div className="hidden lg:flex lg:w-1/2 bg-lime border-r-2 border-gray-900 flex-col justify-between p-12">
+        <div>
+          <div className="flex items-center gap-3 mb-16">
+            <div className="w-12 h-12 bg-white rounded-2xl border-2 border-gray-900 shadow-brutal flex items-center justify-center">
+              <Flame className="w-7 h-7 text-gray-900" />
             </div>
-            <div>
-              <h1 className="font-mono font-black text-3xl text-neon-cyan uppercase tracking-wider">
-                MOMENTUM
-              </h1>
-              <p className="font-mono text-xs text-gray-400 uppercase tracking-widest">
-                Dark Neon Fitness Tracking
-              </p>
-            </div>
+            <h1 className="text-3xl font-extrabold text-gray-900">Momentum</h1>
           </div>
 
-          <AuthIllustration className="w-full max-w-sm mx-auto" />
-
-          <div className="bg-dark-surface p-4 border-2 border-black shadow-brutal-sm">
-            <p className="font-mono text-sm text-gray-300">
-              <span className="text-neon-pink font-bold">⚡ TRACK GOALS.</span> Log daily workout sessions, monitor weekly targets, and build your athletic streak.
+          <div className="max-w-md">
+            <h2 className="text-5xl font-black text-gray-900 leading-tight mb-6">
+              Track your <br />fitness journey
+            </h2>
+            <p className="text-lg text-gray-800 font-medium leading-relaxed">
+              Log your training sessions, set weekly targets, and follow your progress.
+              Simple, reliable, and designed for consistency.
             </p>
           </div>
         </div>
 
-        {/* Right Side: Neobrutalist Login Form */}
-        <div className="bg-dark-surface p-6 sm:p-8 border-2 border-black shadow-neon-cyan">
-          
-          <div className="mb-6">
-            <div className="lg:hidden flex items-center space-x-2 mb-4">
-              <div className="w-8 h-8 bg-neon-cyan border-2 border-black flex items-center justify-center shadow-brutal-sm">
-                <Zap className="w-5 h-5 text-black" />
-              </div>
-              <span className="font-mono font-black text-2xl text-neon-cyan uppercase tracking-wider">
-                MOMENTUM
-              </span>
+        {/* Feature pills */}
+        <div className="flex flex-wrap gap-3">
+          {HIGHLIGHTS.map(({ icon: Icon, label }) => (
+            <span
+              key={label}
+              className="inline-flex items-center gap-2 bg-white/80 backdrop-blur-sm px-4 py-2 rounded-full border-2 border-gray-900 text-sm font-semibold text-gray-900 shadow-brutal-sm"
+            >
+              <Icon className="w-4 h-4 text-gray-900" />
+              <span>{label}</span>
+            </span>
+          ))}
+        </div>
+      </div>
+
+      {/* Right form panel */}
+      <div className="flex-1 flex items-center justify-center p-6 sm:p-10">
+        <div className="w-full max-w-md">
+          {/* Mobile brand */}
+          <div className="lg:hidden flex items-center gap-3 mb-10">
+            <div className="w-10 h-10 bg-lime rounded-xl border-2 border-gray-900 shadow-brutal-sm flex items-center justify-center">
+              <Flame className="w-6 h-6 text-gray-900" />
             </div>
-            <h2 className="font-mono font-black text-2xl sm:text-3xl text-gray-100 uppercase">
-              Sign In
-            </h2>
-            <p className="font-mono text-sm text-gray-400 mt-1">
-              Enter your credentials to access your fitness dashboard.
-            </p>
+            <h1 className="text-2xl font-extrabold text-gray-900">Momentum</h1>
           </div>
 
-          {/* Error Message Alert */}
+          <h2 className="text-3xl font-extrabold text-gray-900 mb-2">Welcome back</h2>
+          <p className="text-gray-500 font-medium mb-8">Sign in to continue tracking your fitness progress.</p>
+
+          {/* Error alert */}
           {error && (
-            <div className="mb-6 p-3 bg-neon-pink/10 border-2 border-neon-pink text-neon-pink flex items-center space-x-2 font-mono text-xs font-bold shadow-brutal-sm">
-              <AlertCircle className="w-5 h-5 flex-shrink-0" />
-              <span>{error}</span>
+            <div className="mb-6 p-4 bg-coral/10 border-2 border-coral rounded-xl text-coral text-sm font-semibold">
+              {error}
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            
-            {/* Email Field */}
+          <form onSubmit={handleSubmit} className="space-y-5">
+            {/* Email */}
             <div>
-              <label className="block font-mono text-xs font-bold uppercase text-gray-300 mb-1">
-                Email Address
-              </label>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Email Address</label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
-                  <Mail className="w-4 h-4" />
-                </div>
+                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <input
                   type="email"
                   required
                   placeholder="alex.runner@example.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 bg-dark-card border-2 border-black text-gray-100 placeholder-gray-500 font-mono text-sm shadow-brutal-sm focus:border-neon-cyan focus:outline-none focus:shadow-neon-cyan transition-all"
+                  className="w-full pl-12 pr-4 py-3.5 bg-white border-2 border-gray-900 rounded-xl text-gray-900 placeholder-gray-400 font-medium shadow-brutal-sm focus:shadow-brutal-lime focus:border-lime focus:outline-none transition-all"
                 />
               </div>
             </div>
 
-            {/* Password Field */}
+            {/* Password */}
             <div>
-              <label className="block font-mono text-xs font-bold uppercase text-gray-300 mb-1">
-                Password
-              </label>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Password</label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
-                  <Lock className="w-4 h-4" />
-                </div>
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <input
                   type="password"
                   required
-                  placeholder="••••••••"
+                  placeholder="Enter your password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 bg-dark-card border-2 border-black text-gray-100 placeholder-gray-500 font-mono text-sm shadow-brutal-sm focus:border-neon-cyan focus:outline-none focus:shadow-neon-cyan transition-all"
+                  className="w-full pl-12 pr-4 py-3.5 bg-white border-2 border-gray-900 rounded-xl text-gray-900 placeholder-gray-400 font-medium shadow-brutal-sm focus:shadow-brutal-lime focus:border-lime focus:outline-none transition-all"
                 />
               </div>
             </div>
 
-            {/* Submit Button */}
+            {/* Submit */}
             <button
               type="submit"
               disabled={loading}
-              className="w-full mt-2 py-3 px-6 bg-neon-cyan border-2 border-black text-black font-mono font-bold text-base uppercase tracking-wide shadow-brutal hover:bg-white hover:shadow-neon-pink transition-all active:translate-x-1 active:translate-y-1 flex items-center justify-center space-x-2 disabled:opacity-50"
+              className="w-full py-3.5 bg-gray-900 text-white border-2 border-gray-900 rounded-xl font-bold text-base shadow-brutal-lime hover:bg-lime hover:text-gray-900 transition-all active:translate-x-1 active:translate-y-1 active:shadow-none flex items-center justify-center gap-2 disabled:opacity-50"
             >
-              {loading ? (
-                <span>Authenticating...</span>
-              ) : (
+              {loading ? 'Signing in...' : (
                 <>
                   <span>Sign In</span>
                   <ArrowRight className="w-5 h-5" />
@@ -152,21 +145,13 @@ export default function LoginPage() {
             </button>
           </form>
 
-          {/* Switch to Register link */}
-          <div className="mt-6 pt-6 border-t-2 border-dark-border text-center">
-            <p className="font-mono text-xs text-gray-400">
-              Don't have an account?{' '}
-              <Link
-                to="/register"
-                className="text-neon-cyan font-bold hover:underline hover:text-neon-pink ml-1 uppercase"
-              >
-                Create Account →
-              </Link>
-            </p>
-          </div>
-
+          <p className="mt-8 text-center text-gray-500 font-medium">
+            Don't have an account?{' '}
+            <Link to="/register" className="text-gray-900 font-bold hover:text-lime transition-colors underline underline-offset-2">
+              Create an account
+            </Link>
+          </p>
         </div>
-
       </div>
     </div>
   );

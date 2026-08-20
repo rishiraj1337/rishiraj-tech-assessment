@@ -1,15 +1,21 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import AuthIllustration from '../components/illustrations/AuthIllustration';
-import { Zap, Lock, Mail, User, Target, Activity, ArrowRight, AlertCircle } from 'lucide-react';
+import { Mail, Lock, User, Target, Dumbbell, TrendingUp, Zap, ArrowRight, Flame } from 'lucide-react';
 
-const GOAL_OPTIONS = [
-  { value: 'running', label: 'Running (Distance in km)' },
-  { value: 'strength', label: 'Strength / Weightlifting (kg)' },
-  { value: 'cardio', label: 'Cardio (Active minutes)' },
-  { value: 'cycling', label: 'Cycling (Distance in km)' },
-  { value: 'crossfit', label: 'Crossfit (Workouts count)' },
+const GOALS = [
+  { value: 'running', label: 'Running (Distance in km)', unit: 'km' },
+  { value: 'strength', label: 'Strength Training (Weight in kg)', unit: 'kg' },
+  { value: 'cardio', label: 'Cardio (Active minutes)', unit: 'min' },
+  { value: 'cycling', label: 'Cycling (Distance in km)', unit: 'km' },
+  { value: 'crossfit', label: 'Crossfit (Workouts count)', unit: 'sessions' },
+];
+
+const HIGHLIGHTS = [
+  { icon: Target, label: 'Set Goals' },
+  { icon: Dumbbell, label: 'Log Sessions' },
+  { icon: TrendingUp, label: 'Track Progress' },
+  { icon: Zap, label: 'Stay Consistent' },
 ];
 
 export default function RegisterPage() {
@@ -21,7 +27,6 @@ export default function RegisterPage() {
   const [password, setPassword] = useState('');
   const [goalType, setGoalType] = useState('running');
   const [targetValue, setTargetValue] = useState('50');
-  
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -30,181 +35,154 @@ export default function RegisterPage() {
     setError('');
 
     if (!name.trim() || !email.trim() || !password) {
-      setError('Please fill in all required fields.');
+      setError('Please fill in all fields.');
       return;
     }
-
     if (password.length < 6) {
-      setError('Password must be at least 6 characters.');
+      setError('Password must be at least 6 characters long.');
       return;
     }
-
-    const numTarget = parseFloat(targetValue);
-    if (isNaN(numTarget) || numTarget <= 0) {
-      setError('Target value must be a positive number.');
+    const target = parseFloat(targetValue);
+    if (isNaN(target) || target <= 0) {
+      setError('Please enter a positive weekly target.');
       return;
     }
 
     setLoading(true);
     try {
-      await register({
-        name: name.trim(),
-        email: email.trim(),
-        password,
-        goalType,
-        targetValue: numTarget,
-      });
+      await register({ name: name.trim(), email: email.trim(), password, goalType, targetValue: target });
       navigate('/dashboard', { replace: true });
     } catch (err) {
-      setError(
-        err.response?.data?.message ||
-        'Registration failed. Please try a different email.'
-      );
+      setError(err.response?.data?.message || 'Registration failed. Please try a different email.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-dark-bg text-gray-100 flex items-center justify-center p-4 sm:p-6 lg:p-8">
-      <div className="w-full max-w-4xl grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
-        
-        {/* Left Side: Brand Banner & Undraw Illustration */}
-        <div className="hidden lg:flex flex-col justify-center space-y-6 p-6">
-          <div className="flex items-center space-x-3">
-            <div className="w-12 h-12 bg-neon-pink border-2 border-black flex items-center justify-center shadow-brutal">
-              <Zap className="w-8 h-8 text-black" />
+    <div className="min-h-screen bg-cream font-outfit flex">
+      {/* Left decorative panel - hidden on mobile */}
+      <div className="hidden lg:flex lg:w-1/2 bg-violet border-r-2 border-gray-900 flex-col justify-between p-12">
+        <div>
+          <div className="flex items-center gap-3 mb-16">
+            <div className="w-12 h-12 bg-white rounded-2xl border-2 border-gray-900 shadow-brutal flex items-center justify-center">
+              <Flame className="w-7 h-7 text-gray-900" />
             </div>
-            <div>
-              <h1 className="font-mono font-black text-3xl text-neon-pink uppercase tracking-wider">
-                JOIN MOMENTUM
-              </h1>
-              <p className="font-mono text-xs text-gray-400 uppercase tracking-widest">
-                Level Up Your Fitness
-              </p>
-            </div>
+            <h1 className="text-3xl font-extrabold text-white">Momentum</h1>
           </div>
 
-          <AuthIllustration className="w-full max-w-sm mx-auto" />
-
-          <div className="bg-dark-surface p-4 border-2 border-black shadow-brutal-sm">
-            <p className="font-mono text-sm text-gray-300">
-              <span className="text-neon-cyan font-bold">🎯 DEFINE TARGETS.</span> Set your fitness goal, log each training session, and crush your weekly metrics.
+          <div className="max-w-md">
+            <h2 className="text-5xl font-black text-white leading-tight mb-6">
+              Start your <br />fitness journey
+            </h2>
+            <p className="text-lg text-white/80 font-medium leading-relaxed">
+              Set up your profile, choose your training focus, and start tracking your weekly workouts.
             </p>
           </div>
         </div>
 
-        {/* Right Side: Neobrutalist Register Form */}
-        <div className="bg-dark-surface p-6 sm:p-8 border-2 border-black shadow-neon-pink">
-          
-          <div className="mb-6">
-            <h2 className="font-mono font-black text-2xl sm:text-3xl text-gray-100 uppercase">
-              Create Account
-            </h2>
-            <p className="font-mono text-sm text-gray-400 mt-1">
-              Start logging your workouts and tracking progress.
-            </p>
+        <div className="flex flex-wrap gap-3">
+          {HIGHLIGHTS.map(({ icon: Icon, label }) => (
+            <span
+              key={label}
+              className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full border-2 border-white/40 text-sm font-semibold text-white shadow-brutal-sm"
+            >
+              <Icon className="w-4 h-4 text-white" />
+              <span>{label}</span>
+            </span>
+          ))}
+        </div>
+      </div>
+
+      {/* Right form */}
+      <div className="flex-1 flex items-center justify-center p-6 sm:p-10">
+        <div className="w-full max-w-md">
+          {/* Mobile brand */}
+          <div className="lg:hidden flex items-center gap-3 mb-8">
+            <div className="w-10 h-10 bg-violet rounded-xl border-2 border-gray-900 shadow-brutal-sm flex items-center justify-center">
+              <Flame className="w-6 h-6 text-white" />
+            </div>
+            <h1 className="text-2xl font-extrabold text-gray-900">Momentum</h1>
           </div>
 
-          {/* Error Message Alert */}
+          <h2 className="text-3xl font-extrabold text-gray-900 mb-2">Create your account</h2>
+          <p className="text-gray-500 font-medium mb-8">Set up your profile and begin tracking your workouts.</p>
+
           {error && (
-            <div className="mb-6 p-3 bg-neon-pink/10 border-2 border-neon-pink text-neon-pink flex items-center space-x-2 font-mono text-xs font-bold shadow-brutal-sm">
-              <AlertCircle className="w-5 h-5 flex-shrink-0" />
-              <span>{error}</span>
+            <div className="mb-6 p-4 bg-coral/10 border-2 border-coral rounded-xl text-coral text-sm font-semibold">
+              {error}
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            
-            {/* Full Name Field */}
+            {/* Name */}
             <div>
-              <label className="block font-mono text-xs font-bold uppercase text-gray-300 mb-1">
-                Full Name *
-              </label>
+              <label className="block text-sm font-semibold text-gray-700 mb-1.5">Full Name</label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
-                  <User className="w-4 h-4" />
-                </div>
+                <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <input
                   type="text"
                   required
                   placeholder="Alex Runner"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 bg-dark-card border-2 border-black text-gray-100 placeholder-gray-500 font-mono text-sm shadow-brutal-sm focus:border-neon-pink focus:outline-none transition-all"
+                  className="w-full pl-12 pr-4 py-3 bg-white border-2 border-gray-900 rounded-xl placeholder-gray-400 font-medium shadow-brutal-sm focus:shadow-brutal-violet focus:border-violet focus:outline-none transition-all"
                 />
               </div>
             </div>
 
-            {/* Email Field */}
+            {/* Email */}
             <div>
-              <label className="block font-mono text-xs font-bold uppercase text-gray-300 mb-1">
-                Email Address *
-              </label>
+              <label className="block text-sm font-semibold text-gray-700 mb-1.5">Email Address</label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
-                  <Mail className="w-4 h-4" />
-                </div>
+                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <input
                   type="email"
                   required
                   placeholder="alex.runner@example.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 bg-dark-card border-2 border-black text-gray-100 placeholder-gray-500 font-mono text-sm shadow-brutal-sm focus:border-neon-pink focus:outline-none transition-all"
+                  className="w-full pl-12 pr-4 py-3 bg-white border-2 border-gray-900 rounded-xl placeholder-gray-400 font-medium shadow-brutal-sm focus:shadow-brutal-violet focus:border-violet focus:outline-none transition-all"
                 />
               </div>
             </div>
 
-            {/* Password Field */}
+            {/* Password */}
             <div>
-              <label className="block font-mono text-xs font-bold uppercase text-gray-300 mb-1">
-                Password (min 6 characters) *
-              </label>
+              <label className="block text-sm font-semibold text-gray-700 mb-1.5">Password</label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
-                  <Lock className="w-4 h-4" />
-                </div>
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <input
                   type="password"
                   required
-                  placeholder="••••••••"
+                  placeholder="Minimum 6 characters"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 bg-dark-card border-2 border-black text-gray-100 placeholder-gray-500 font-mono text-sm shadow-brutal-sm focus:border-neon-pink focus:outline-none transition-all"
+                  className="w-full pl-12 pr-4 py-3 bg-white border-2 border-gray-900 rounded-xl placeholder-gray-400 font-medium shadow-brutal-sm focus:shadow-brutal-violet focus:border-violet focus:outline-none transition-all"
                 />
               </div>
             </div>
 
-            {/* Goal Type & Target Value grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="block font-mono text-xs font-bold uppercase text-gray-300 mb-1">
-                  Fitness Focus
-                </label>
-                <div className="relative">
-                  <select
-                    value={goalType}
-                    onChange={(e) => setGoalType(e.target.value)}
-                    className="w-full pl-3 pr-8 py-2.5 bg-dark-card border-2 border-black text-gray-100 font-mono text-xs shadow-brutal-sm focus:border-neon-pink focus:outline-none"
-                  >
-                    {GOAL_OPTIONS.map((g) => (
-                      <option key={g.value} value={g.value} className="bg-dark-card">
-                        {g.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+            {/* Goal type + target row */}
+            <div className="grid grid-cols-1 sm:grid-cols-5 gap-3">
+              <div className="sm:col-span-3">
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Training Focus</label>
+                <select
+                  value={goalType}
+                  onChange={(e) => setGoalType(e.target.value)}
+                  className="w-full px-3 py-3 bg-white border-2 border-gray-900 rounded-xl font-medium text-sm shadow-brutal-sm focus:outline-none focus:border-violet"
+                >
+                  {GOALS.map((g) => (
+                    <option key={g.value} value={g.value}>{g.label}</option>
+                  ))}
+                </select>
               </div>
-
-              <div>
-                <label className="block font-mono text-xs font-bold uppercase text-gray-300 mb-1">
+              <div className="sm:col-span-2">
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">
                   Weekly Target
                 </label>
                 <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
-                    <Target className="w-4 h-4" />
-                  </div>
+                  <Target className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                   <input
                     type="number"
                     min="1"
@@ -212,21 +190,19 @@ export default function RegisterPage() {
                     required
                     value={targetValue}
                     onChange={(e) => setTargetValue(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 bg-dark-card border-2 border-black text-gray-100 font-mono text-sm shadow-brutal-sm focus:border-neon-pink focus:outline-none"
+                    className="w-full pl-9 pr-3 py-3 bg-white border-2 border-gray-900 rounded-xl font-medium shadow-brutal-sm focus:outline-none focus:border-violet"
                   />
                 </div>
               </div>
             </div>
 
-            {/* Submit Button */}
+            {/* Submit */}
             <button
               type="submit"
               disabled={loading}
-              className="w-full mt-4 py-3 px-6 bg-neon-pink border-2 border-black text-white font-mono font-bold text-base uppercase tracking-wide shadow-brutal hover:bg-white hover:text-black transition-all active:translate-x-1 active:translate-y-1 flex items-center justify-center space-x-2 disabled:opacity-50"
+              className="w-full mt-2 py-3.5 bg-gray-900 text-white border-2 border-gray-900 rounded-xl font-bold text-base shadow-brutal-violet hover:bg-violet hover:text-white transition-all active:translate-x-1 active:translate-y-1 active:shadow-none flex items-center justify-center gap-2 disabled:opacity-50"
             >
-              {loading ? (
-                <span>Creating Account...</span>
-              ) : (
+              {loading ? 'Creating account...' : (
                 <>
                   <span>Create Account</span>
                   <ArrowRight className="w-5 h-5" />
@@ -235,21 +211,13 @@ export default function RegisterPage() {
             </button>
           </form>
 
-          {/* Link to Login */}
-          <div className="mt-6 pt-4 border-t-2 border-dark-border text-center">
-            <p className="font-mono text-xs text-gray-400">
-              Already have an account?{' '}
-              <Link
-                to="/login"
-                className="text-neon-pink font-bold hover:underline hover:text-neon-cyan ml-1 uppercase"
-              >
-                Sign In →
-              </Link>
-            </p>
-          </div>
-
+          <p className="mt-8 text-center text-gray-500 font-medium">
+            Already have an account?{' '}
+            <Link to="/login" className="text-gray-900 font-bold hover:text-violet transition-colors underline underline-offset-2">
+              Sign in
+            </Link>
+          </p>
         </div>
-
       </div>
     </div>
   );

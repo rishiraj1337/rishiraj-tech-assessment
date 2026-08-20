@@ -1,5 +1,6 @@
 package com.github.rishiraj1337.momentum.entity;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
@@ -23,15 +24,18 @@ public class WorkoutLog extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(nullable = false)
     private LocalDate workoutDate;
 
+    @Column(nullable = false)
     private String activity;
 
+    @Column(nullable = false)
     private Integer duration;
 
     private Double valueAchieved;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id")
+    @JoinColumn(name = "user_id", nullable = false)
     private User user;
 }

@@ -14,7 +14,7 @@ public class WorkoutMapper {
                 workout.getActivity(),
                 workout.getDuration(),
                 workout.getValueAchieved(),
-                workout.getUser().getId(),
+                workout.getUser() != null ? workout.getUser().getId() : null,
                 workout.getCreatedAt(),
                 workout.getUpdatedAt()
         );

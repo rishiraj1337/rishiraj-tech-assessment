@@ -271,7 +271,7 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/users/{{userId}}/weekly-summary",
+              "raw": "{{baseUrl}}/api/users/{{userId}}/weekly-summary?date=2026-08-20&timezone=UTC&weekStart=MONDAY",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -280,6 +280,26 @@
                 "users",
                 "{{userId}}",
                 "weekly-summary"
+              ],
+              "query": [
+                {
+                  "key": "date",
+                  "value": "2026-08-20",
+                  "description": "Optional reference date (YYYY-MM-DD)",
+                  "disabled": true
+                },
+                {
+                  "key": "timezone",
+                  "value": "UTC",
+                  "description": "Optional user timezone (e.g. UTC, America/New_York)",
+                  "disabled": true
+                },
+                {
+                  "key": "weekStart",
+                  "value": "MONDAY",
+                  "description": "Optional week start day (MONDAY, SUNDAY, etc.)",
+                  "disabled": true
+                }
               ]
             },
             "description": "Calculates and returns the user's weekly fitness progress summary (Monday through Sunday)."

@@ -206,9 +206,17 @@ Retrieves all workout records belonging to the specified user.
 #### Get Weekly Progress Summary
 `GET /api/users/{id}/weekly-summary` *(Requires Auth)*
 
-Calculates the current week's workout summary (Monday through Sunday) compared against the user's weekly target.
+Calculates the user's weekly workout summary (7-day window) compared against the user's weekly target. Supports custom reference dates, timezone resolution, and custom week start days.
 
-- **Parameters:** `id` (Long, Path)
+- **Path Parameters:** `id` (Long, Path) - User ID
+- **Query Parameters:**
+  - `date` (ISO Date `YYYY-MM-DD`, optional): Reference date for the week (defaults to today in the resolved timezone).
+  - `timezone` (String, optional): Timezone name (e.g. `America/New_York`, `UTC`, `Asia/Kolkata`). Defaults to server timezone.
+  - `weekStart` (DayOfWeek, optional): First day of the week (`MONDAY`, `TUESDAY`, `WEDNESDAY`, `THURSDAY`, `FRIDAY`, `SATURDAY`, `SUNDAY`). Defaults to `MONDAY`.
+- **Edge Cases Handled:**
+  - **Timezone shifts:** Resolves local date relative to user's time zone.
+  - **Custom week boundaries:** Accurately aligns 7-day window to custom start day (e.g. Sunday to Saturday).
+  - **Target handling:** Safely handles null, zero, or negative targets (percentage = `0.0`), ignores negative logs, and rounds progress percentage to 2 decimal places.
 - **Responses:**
   - `200 OK`
     ```json

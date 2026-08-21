@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { LayoutDashboard, Dumbbell, User, LogOut, Menu, X, Flame } from 'lucide-react';
+import { LayoutDashboard, Dumbbell, User, LogOut, Menu, X, Flame, TrendingUp, Target } from 'lucide-react';
 
 const NAV_ITEMS = [
   { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
   { label: 'Workouts', path: '/workouts', icon: Dumbbell },
+  { label: 'Analytics', path: '/analytics', icon: TrendingUp },
+  { label: 'Goals & Habits', path: '/goals', icon: Target },
   { label: 'Profile', path: '/user', icon: User },
 ];
 

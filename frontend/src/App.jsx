@@ -6,6 +6,8 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import Dashboard from './pages/Dashboard';
 import Workouts from './pages/Workouts';
+import Analytics from './pages/Analytics';
+import Goals from './pages/Goals';
 import UserDetails from './pages/UserDetails';
 
 export default function App() {
@@ -21,6 +23,8 @@ export default function App() {
           <Route element={<AuthGate><Layout /></AuthGate>}>
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/workouts" element={<Workouts />} />
+            <Route path="/analytics" element={<Analytics />} />
+            <Route path="/goals" element={<Goals />} />
             <Route path="/user" element={<UserDetails />} />
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="*" element={<Navigate to="/dashboard" replace />} />

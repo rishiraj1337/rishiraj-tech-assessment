@@ -5,7 +5,7 @@ import RegisterPage from '../pages/RegisterPage';
 import { AuthProvider } from '../context/AuthContext';
 
 describe('RegisterPage Component', () => {
-  it('renders registration form elements', () => {
+  it('renders registration form elements and Target Builder', () => {
     render(
       <AuthProvider>
         <BrowserRouter>
@@ -18,11 +18,44 @@ describe('RegisterPage Component', () => {
     expect(screen.getByPlaceholderText(/Alex Runner/i)).toBeTruthy();
     expect(screen.getByPlaceholderText(/alex.runner@example.com/i)).toBeTruthy();
     expect(screen.getByPlaceholderText(/Minimum 6 characters/i)).toBeTruthy();
+    expect(screen.getByText(/Custom Target Builder/i)).toBeTruthy();
+    expect(screen.getByText(/Converted Weekly Target/i)).toBeTruthy();
     expect(screen.getByRole('button', { name: /Create Account/i })).toBeTruthy();
   });
 
-  it('validates password length on submit', async () => {
+  it('toggles target builder info box when clicking How it works button', () => {
     render(
+      <AuthProvider>
+        <BrowserRouter>
+          <RegisterPage />
+        </BrowserRouter>
+      </AuthProvider>
+    );
+
+    const infoBtn = screen.getByRole('button', { name: /How it works/i });
+    fireEvent.click(infoBtn);
+
+    expect(screen.getByText(/How Momentum Targets Work/i)).toBeTruthy();
+  });
+
+  it('switches frequency mode to Sessions and updates calculation', () => {
+    render(
+      <AuthProvider>
+        <BrowserRouter>
+          <RegisterPage />
+        </BrowserRouter>
+      </AuthProvider>
+    );
+
+    const sessionsBtn = screen.getByRole('button', { name: /Sessions/i });
+    fireEvent.click(sessionsBtn);
+
+    expect(screen.getByText(/Workouts \/ Week/i)).toBeTruthy();
+    expect(screen.getByText(/Minutes \/ Session/i)).toBeTruthy();
+  });
+
+  it('validates password length on submit', async () => {
+    const { container } = render(
       <AuthProvider>
         <BrowserRouter>
           <RegisterPage />
@@ -38,8 +71,8 @@ describe('RegisterPage Component', () => {
     fireEvent.change(emailInput, { target: { value: 'alex@example.com' } });
     fireEvent.change(passInput, { target: { value: '123' } });
 
-    const submitBtn = screen.getByRole('button', { name: /Create Account/i });
-    fireEvent.click(submitBtn);
+    const form = container.querySelector('form');
+    fireEvent.submit(form);
 
     expect(screen.getByText(/Password must be at least 6 characters long/i)).toBeTruthy();
   });

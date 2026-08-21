@@ -318,7 +318,10 @@ export default function UserDetails() {
 
               {/* Weekly Target */}
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Weekly Target (Units)</label>
+                <div className="flex justify-between items-center mb-1.5">
+                  <label className="text-sm font-semibold text-gray-700">Weekly Target ({selectedGoalObj.unit})</label>
+                  <span className="text-xs text-gray-400 font-medium">~{(parseFloat(targetValue || 0) / 7).toFixed(1)} / day</span>
+                </div>
                 <div className="relative">
                   <Target className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                   <input

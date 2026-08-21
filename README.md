@@ -139,8 +139,89 @@ tech/
 │   └── run_all_tests.sh                 # Unified test runner
 │
 ├── docker-compose.yml                   # Docker Compose multi-container setup
+├── LICENSE                              # CC BY-NC-SA 4.0 License
 └── README.md                            # Project documentation
 ```
+
+---
+
+## Authentication & Token Guide
+
+### How to Acquire a JWT Bearer Token
+
+#### 1. Register a New Account
+Send a `POST` request to `/api/auth/register`:
+```bash
+curl -X POST http://localhost:8080/api/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Alex Runner",
+    "email": "alex.runner@example.com",
+    "password": "secretpassword",
+    "goalType": "running",
+    "targetValue": 210.0
+  }'
+```
+
+**Response (`201 Created`):**
+```json
+{
+  "token": "eyJhbGciOiJIUzI1NiJ9...",
+  "type": "Bearer",
+  "user": {
+    "id": 1,
+    "name": "Alex Runner",
+    "email": "alex.runner@example.com",
+    "goalType": "running",
+    "targetValue": 210.0
+  }
+}
+```
+
+#### 2. Sign In (Existing Account)
+Send a `POST` request to `/api/auth/login`:
+```bash
+curl -X POST http://localhost:8080/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "alex.runner@example.com",
+    "password": "secretpassword"
+  }'
+```
+
+#### 3. Using the Token
+Include the token in all subsequent requests in the `Authorization` header:
+```bash
+curl -X GET http://localhost:8080/api/users/1/workouts \
+  -H "Authorization: Bearer <your_jwt_token>"
+```
+
+---
+
+## How to Disable / Bypass Authentication
+
+Authentication is configurable on both the backend and frontend for development, testing, or headless environments:
+
+### 1. Disable Auth on Backend
+Set `APP_AUTH_ENABLED=false` in the environment or in `application.yml`:
+```yaml
+app:
+  auth:
+    enabled: false
+```
+Or via environment variable / JVM flag:
+```bash
+export APP_AUTH_ENABLED=false
+# Or: ./mvnw spring-boot:run -Dapp.auth.enabled=false
+```
+When disabled, Spring Security permits all requests across all endpoints without requiring JWT tokens or Authorization headers.
+
+### 2. Disable Auth on Frontend
+Set `VITE_AUTH_ENABLED=false` in your `.env` file or docker environment:
+```bash
+VITE_AUTH_ENABLED=false
+```
+When disabled, the frontend bypasses login gates and loads a default demo profile directly into the dashboard.
 
 ---
 
@@ -276,10 +357,18 @@ Comprehensive documentation, Postman collections, and OpenAPI specifications are
 | `SPRING_DATASOURCE_PASSWORD` | Database password | `postgres` |
 | `JWT_SECRET` | 256-bit secret key for HMAC-SHA signing | Embedded default for dev |
 | `JWT_EXPIRATION` | Token validity duration in milliseconds | `86400000` (24 Hours) |
+| `APP_AUTH_ENABLED` | Toggle backend JWT security enforcement | `true` |
 | `VITE_API_BASE_URL` | Base URL for frontend API requests | `http://localhost:8080` (or `/` behind Nginx) |
+| `VITE_AUTH_ENABLED` | Toggle frontend login gate | `true` |
 
 ---
 
 ## License
 
-This project is licensed under the MIT License.
+This project is licensed under the **Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License (CC BY-NC-SA 4.0)**.
+
+- **NonCommercial**: You may not use the material for commercial purposes.
+- **Attribution**: You must give appropriate credit, provide a link to the license, and indicate if changes were made.
+- **ShareAlike**: If you remix, transform, or build upon the material, you must distribute your contributions under the same license as the original.
+
+See the [LICENSE](LICENSE) file for complete legal terms.

@@ -1,14 +1,14 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import api from '../api';
 import {
   Plus, Search, Calendar, Clock, Trash2, Edit3, X, Dumbbell,
-  AlertCircle, Activity, ChevronDown, ChevronUp, Sparkles, Copy,
-  ChevronLeft, ChevronRight, Filter, ArrowUpDown, Check
+  AlertCircle, ChevronDown, ChevronUp, Sparkles, Copy,
+  ChevronLeft, ChevronRight, ArrowUpDown, Check, RotateCcw
 } from 'lucide-react';
 
-const QUICK_ACTIVITIES = [
+export const QUICK_ACTIVITIES = [
   'Running',
   'Weightlifting',
   'HIIT / Cardio',
@@ -17,9 +17,9 @@ const QUICK_ACTIVITIES = [
   'Walking / Hiking'
 ];
 
-const DURATION_PRESETS = [15, 30, 45, 60, 90];
+export const DURATION_PRESETS = [15, 30, 45, 60, 90];
 
-const CATEGORY_TABS = [
+export const CATEGORY_TABS = [
   'All',
   'Running',
   'Weightlifting',
@@ -28,6 +28,69 @@ const CATEGORY_TABS = [
   'Crossfit'
 ];
 
+export const CATEGORY_KEYWORDS = {
+  Running: ['run', 'jog', 'sprint', 'treadmill', '5k', '10k', 'marathon', 'tempo', 'interval run', 'mile'],
+  Weightlifting: ['weight', 'lift', 'strength', 'bench', 'squat', 'deadlift', 'press', 'dumbbell', 'barbell', 'gym', 'chest', 'back', 'legs', 'arms', 'bicep', 'tricep', 'shoulder', 'push', 'pull', 'upper', 'lower', 'hypertrophy'],
+  'HIIT / Cardio': ['hiit', 'cardio', 'interval', 'tabata', 'circuit', 'jump rope', 'burpee', 'aerobic', 'elliptical', 'rower', 'rowing', 'stair', 'bootcamp'],
+  Cycling: ['cycl', 'bike', 'biking', 'spin', 'ride', 'peloton', 'indoor cycle', 'road bike'],
+  Crossfit: ['crossfit', 'wod', 'amrap', 'emom', 'metcon', 'functional', 'clean and jerk', 'snatch', 'thruster', 'kettlebell'],
+  'Walking / Hiking': ['walk', 'hike', 'hiking', 'walking', 'trek', 'steps', 'trail']
+};
+
+export function matchesCategory(activity, category) {
+  if (!category || category === 'All') return true;
+  if (!activity) return false;
+  const act = activity.toLowerCase();
+  const cat = category.toLowerCase();
+  if (act.includes(cat)) return true;
+  const keywords = CATEGORY_KEYWORDS[category] || [cat.split(' ')[0]];
+  return keywords.some((kw) => act.includes(kw.toLowerCase()));
+}
+
+export function sortWorkouts(list, sortBy) {
+  const sorted = [...list];
+  sorted.sort((a, b) => {
+    if (sortBy === 'newest') {
+      const dateCmp = (b.workoutDate || '').localeCompare(a.workoutDate || '');
+      return dateCmp !== 0 ? dateCmp : (b.id || 0) - (a.id || 0);
+    }
+    if (sortBy === 'oldest') {
+      const dateCmp = (a.workoutDate || '').localeCompare(b.workoutDate || '');
+      return dateCmp !== 0 ? dateCmp : (a.id || 0) - (b.id || 0);
+    }
+    if (sortBy === 'duration' || sortBy === 'duration-desc') {
+      const durCmp = (Number(b.duration) || 0) - (Number(a.duration) || 0);
+      return durCmp !== 0 ? durCmp : (b.workoutDate || '').localeCompare(a.workoutDate || '');
+    }
+    if (sortBy === 'duration-asc') {
+      const durCmp = (Number(a.duration) || 0) - (Number(b.duration) || 0);
+      return durCmp !== 0 ? durCmp : (b.workoutDate || '').localeCompare(a.workoutDate || '');
+    }
+    if (sortBy === 'value' || sortBy === 'value-desc') {
+      const aVal = a.valueAchieved != null ? Number(a.valueAchieved) : Number(a.duration) || 0;
+      const bVal = b.valueAchieved != null ? Number(b.valueAchieved) : Number(b.duration) || 0;
+      const valCmp = bVal - aVal;
+      return valCmp !== 0 ? valCmp : (b.workoutDate || '').localeCompare(a.workoutDate || '');
+    }
+    if (sortBy === 'value-asc') {
+      const aVal = a.valueAchieved != null ? Number(a.valueAchieved) : Number(a.duration) || 0;
+      const bVal = b.valueAchieved != null ? Number(b.valueAchieved) : Number(b.duration) || 0;
+      const valCmp = aVal - bVal;
+      return valCmp !== 0 ? valCmp : (b.workoutDate || '').localeCompare(a.workoutDate || '');
+    }
+    if (sortBy === 'alphabetical' || sortBy === 'alpha-asc') {
+      const nameCmp = (a.activity || '').toLowerCase().localeCompare((b.activity || '').toLowerCase());
+      return nameCmp !== 0 ? nameCmp : (b.workoutDate || '').localeCompare(a.workoutDate || '');
+    }
+    if (sortBy === 'alpha-desc') {
+      const nameCmp = (b.activity || '').toLowerCase().localeCompare((a.activity || '').toLowerCase());
+      return nameCmp !== 0 ? nameCmp : (b.workoutDate || '').localeCompare(a.workoutDate || '');
+    }
+    return 0;
+  });
+  return sorted;
+}
+
 export default function Workouts() {
   const { user } = useAuth();
   const { error: toastError, success: toastSuccess, formatApiError } = useToast();
@@ -35,7 +98,7 @@ export default function Workouts() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [activeCategory, setActiveCategory] = useState('All');
-  const [sortBy, setSortBy] = useState('newest'); // 'newest' | 'oldest' | 'duration' | 'value' | 'alphabetical'
+  const [sortBy, setSortBy] = useState('newest'); // 'newest' | 'oldest' | 'duration-desc' | 'duration-asc' | 'value-desc' | 'value-asc' | 'alpha-asc' | 'alpha-desc'
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -72,6 +135,11 @@ export default function Workouts() {
   useEffect(() => {
     fetchWorkouts();
   }, [user]);
+
+  // Reset to page 1 whenever filters or search criteria change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, activeCategory, sortBy, pageSize]);
 
   // Open create modal
   const openCreate = () => {
@@ -212,31 +280,52 @@ export default function Workouts() {
     }
   };
 
-  // Filter & Search
-  let filtered = workouts.filter((w) => {
-    const matchesSearch = w.activity?.toLowerCase().includes(search.toLowerCase());
-    const matchesCategory =
-      activeCategory === 'All' ||
-      w.activity?.toLowerCase().includes(activeCategory.toLowerCase().split(' ')[0]);
-    return matchesSearch && matchesCategory;
-  });
+  // Reset all filters
+  const resetFilters = () => {
+    setSearch('');
+    setActiveCategory('All');
+    setSortBy('newest');
+    setCurrentPage(1);
+  };
 
-  // Sorting
-  filtered.sort((a, b) => {
-    if (sortBy === 'newest') return (b.workoutDate || '').localeCompare(a.workoutDate || '');
-    if (sortBy === 'oldest') return (a.workoutDate || '').localeCompare(b.workoutDate || '');
-    if (sortBy === 'duration') return (b.duration || 0) - (a.duration || 0);
-    if (sortBy === 'value') return (b.valueAchieved || 0) - (a.valueAchieved || 0);
-    if (sortBy === 'alphabetical') return (a.activity || '').localeCompare(b.activity || '');
-    return 0;
-  });
+  // Computed Category Counts
+  const categoryCounts = useMemo(() => {
+    const counts = { All: workouts.length };
+    CATEGORY_TABS.forEach((cat) => {
+      if (cat !== 'All') {
+        counts[cat] = workouts.filter((w) => matchesCategory(w.activity, cat)).length;
+      }
+    });
+    return counts;
+  }, [workouts]);
+
+  // Filter & Search Pipeline
+  const filteredWorkouts = useMemo(() => {
+    return workouts.filter((w) => {
+      const q = search.toLowerCase().trim();
+      const matchesSearch =
+        !q ||
+        (w.activity && w.activity.toLowerCase().includes(q)) ||
+        (w.workoutDate && w.workoutDate.includes(q)) ||
+        String(w.duration).includes(q) ||
+        String(w.valueAchieved).includes(q);
+
+      const matchesCat = matchesCategory(w.activity, activeCategory);
+      return matchesSearch && matchesCat;
+    });
+  }, [workouts, search, activeCategory]);
+
+  // Sorting Pipeline
+  const sortedWorkouts = useMemo(() => {
+    return sortWorkouts(filteredWorkouts, sortBy);
+  }, [filteredWorkouts, sortBy]);
 
   // Pagination calculation
-  const totalItems = filtered.length;
+  const totalItems = sortedWorkouts.length;
   const totalPages = Math.max(Math.ceil(totalItems / pageSize), 1);
   const safeCurrentPage = Math.min(currentPage, totalPages);
   const startIndex = (safeCurrentPage - 1) * pageSize;
-  const paginatedWorkouts = filtered.slice(startIndex, startIndex + pageSize);
+  const paginatedWorkouts = sortedWorkouts.slice(startIndex, startIndex + pageSize);
 
   const handlePageChange = (p) => {
     if (p >= 1 && p <= totalPages) {
@@ -244,6 +333,8 @@ export default function Workouts() {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
+
+  const isFiltered = search.trim() !== '' || activeCategory !== 'All' || sortBy !== 'newest';
 
   return (
     <div className="space-y-6 font-outfit max-w-6xl mx-auto">
@@ -291,18 +382,16 @@ export default function Workouts() {
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
               type="text"
-              placeholder="Search activities (e.g. Running, HIIT, Deadlifts)..."
+              placeholder="Search activities by name, date, duration..."
               value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
-                setCurrentPage(1);
-              }}
+              onChange={(e) => setSearch(e.target.value)}
               className="w-full pl-11 pr-10 py-2.5 bg-sand/60 border-2 border-gray-200 rounded-xl font-medium placeholder-gray-400 focus:border-gray-900 focus:outline-none transition-all text-sm"
             />
             {search && (
               <button
                 onClick={() => setSearch('')}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-900 p-1"
+                title="Clear search"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -311,17 +400,20 @@ export default function Workouts() {
 
           {/* Sort selector */}
           <div className="flex items-center gap-2">
-            <div className="relative">
+            <div className="relative flex-1 sm:flex-initial">
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
-                className="appearance-none pl-9 pr-8 py-2.5 bg-sand/60 border-2 border-gray-200 rounded-xl text-sm font-bold text-gray-700 focus:border-gray-900 focus:outline-none"
+                className="w-full appearance-none pl-9 pr-8 py-2.5 bg-sand/60 border-2 border-gray-200 rounded-xl text-sm font-bold text-gray-700 focus:border-gray-900 focus:outline-none"
               >
                 <option value="newest">Sort: Newest First</option>
                 <option value="oldest">Sort: Oldest First</option>
-                <option value="duration">Sort: Longest Duration</option>
-                <option value="value">Sort: Highest Score</option>
-                <option value="alphabetical">Sort: Activity (A-Z)</option>
+                <option value="duration-desc">Sort: Longest Duration</option>
+                <option value="duration-asc">Sort: Shortest Duration</option>
+                <option value="value-desc">Sort: Highest Score</option>
+                <option value="value-asc">Sort: Lowest Score</option>
+                <option value="alpha-asc">Sort: Activity (A-Z)</option>
+                <option value="alpha-desc">Sort: Activity (Z-A)</option>
               </select>
               <ArrowUpDown className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-500 pointer-events-none" />
               <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-500 pointer-events-none" />
@@ -331,10 +423,7 @@ export default function Workouts() {
             <div className="relative">
               <select
                 value={pageSize}
-                onChange={(e) => {
-                  setPageSize(Number(e.target.value));
-                  setCurrentPage(1);
-                }}
+                onChange={(e) => setPageSize(Number(e.target.value))}
                 className="appearance-none pl-3 pr-7 py-2.5 bg-sand/60 border-2 border-gray-200 rounded-xl text-sm font-bold text-gray-700 focus:border-gray-900 focus:outline-none"
               >
                 <option value={6}>6 / page</option>
@@ -346,24 +435,43 @@ export default function Workouts() {
           </div>
         </div>
 
-        {/* Category Filter Pills */}
-        <div className="flex flex-wrap gap-2 pt-1 border-t border-gray-100">
-          {CATEGORY_TABS.map((cat) => (
+        {/* Category Filter Pills & Status */}
+        <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-gray-100">
+          <div className="flex flex-wrap gap-2">
+            {CATEGORY_TABS.map((cat) => {
+              const count = categoryCounts[cat] ?? 0;
+              const isActive = activeCategory === cat;
+              return (
+                <button
+                  key={cat}
+                  onClick={() => setActiveCategory(cat)}
+                  className={`text-xs font-bold px-3.5 py-1.5 rounded-xl border-2 transition-all flex items-center gap-1.5 ${
+                    isActive
+                      ? 'bg-lime text-gray-900 border-gray-900 shadow-brutal-sm'
+                      : 'bg-sand/40 text-gray-600 border-gray-200 hover:border-gray-400'
+                  }`}
+                >
+                  <span>{cat}</span>
+                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${
+                    isActive ? 'bg-gray-900 text-white' : 'bg-gray-200 text-gray-600'
+                  }`}>
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Reset Filters Shortcut */}
+          {isFiltered && (
             <button
-              key={cat}
-              onClick={() => {
-                setActiveCategory(cat);
-                setCurrentPage(1);
-              }}
-              className={`text-xs font-bold px-3.5 py-1.5 rounded-xl border-2 transition-all ${
-                activeCategory === cat
-                  ? 'bg-lime text-gray-900 border-gray-900 shadow-brutal-sm'
-                  : 'bg-sand/40 text-gray-600 border-gray-200 hover:border-gray-400'
-              }`}
+              onClick={resetFilters}
+              className="inline-flex items-center gap-1 text-xs font-bold text-gray-500 hover:text-gray-900 transition-colors py-1 px-2.5 rounded-lg border border-gray-200 hover:border-gray-900"
             >
-              {cat}
+              <RotateCcw className="w-3 h-3" />
+              <span>Reset Filters</span>
             </button>
-          ))}
+          )}
         </div>
       </div>
 
@@ -373,24 +481,32 @@ export default function Workouts() {
           <div className="w-8 h-8 border-3 border-gray-900 border-t-lime rounded-full animate-spin mx-auto mb-3" />
           <p className="text-gray-500 font-medium">Loading workout sessions...</p>
         </div>
-      ) : filtered.length === 0 ? (
+      ) : sortedWorkouts.length === 0 ? (
         <div className="bg-white border-2 border-gray-200 rounded-3xl p-10 sm:p-16 text-center shadow-sm">
           <div className="w-16 h-16 rounded-2xl bg-sand border-2 border-gray-300 flex items-center justify-center mx-auto mb-4">
-            {search ? (
+            {search || activeCategory !== 'All' ? (
               <Search className="w-8 h-8 text-gray-400" />
             ) : (
               <Dumbbell className="w-8 h-8 text-gray-400" />
             )}
           </div>
           <h3 className="text-xl font-bold text-gray-900 mb-2">
-            {search ? 'No matches found' : 'No workouts logged yet'}
+            {search || activeCategory !== 'All' ? 'No matching workouts found' : 'No workouts logged yet'}
           </h3>
           <p className="text-gray-500 font-medium mb-6 max-w-sm mx-auto">
-            {search
-              ? `No activities matched "${search}". Try resetting your search or filter.`
+            {search || activeCategory !== 'All'
+              ? 'No sessions matched your search or category filter. Try clearing filters or using different keywords.'
               : 'Log your first workout to start tracking your time, volume, and weekly progress.'}
           </p>
-          {!search && (
+          {search || activeCategory !== 'All' ? (
+            <button
+              onClick={resetFilters}
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-sand border-2 border-gray-900 rounded-xl text-gray-900 font-bold text-xs shadow-brutal-sm hover:bg-lime transition-all"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>Clear Search & Filters</span>
+            </button>
+          ) : (
             <button
               onClick={openCreate}
               className="inline-flex items-center gap-2 px-6 py-3 bg-lime border-2 border-gray-900 rounded-xl text-gray-900 font-bold text-sm shadow-brutal hover:shadow-brutal-lg transition-all"

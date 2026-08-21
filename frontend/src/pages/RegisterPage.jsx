@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import {
   Mail, Lock, User, Target, Dumbbell, TrendingUp, Zap, ArrowRight,
-  Flame, Info, Sparkles
+  Flame, Info, Check, X, ShieldAlert
 } from 'lucide-react';
 
 const FITNESS_ACTIVITIES = [
@@ -31,6 +31,19 @@ const HIGHLIGHTS = [
   { icon: Zap, label: 'Streak Counter' },
 ];
 
+export function validatePassword(password) {
+  if (!password || password.length < 8) {
+    return 'Password must be at least 8 characters long.';
+  }
+  if (!/[a-zA-Z]/.test(password)) {
+    return 'Password must contain at least one letter.';
+  }
+  if (!/\d/.test(password)) {
+    return 'Password must contain at least one number.';
+  }
+  return null;
+}
+
 export default function RegisterPage() {
   const navigate = useNavigate();
   const { register } = useAuth();
@@ -54,6 +67,11 @@ export default function RegisterPage() {
 
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // Password rules validation flags
+  const hasMinLength = password.length >= 8;
+  const hasLetter = /[a-zA-Z]/.test(password);
+  const hasNumber = /\d/.test(password);
 
   // Compute weekly target dynamically
   let computedWeeklyTarget = 0;
@@ -98,12 +116,14 @@ export default function RegisterPage() {
       toastError(msg, 'Incomplete Form');
       return;
     }
-    if (password.length < 6) {
-      const msg = 'Password must be at least 6 characters long.';
-      setError(msg);
-      toastError(msg, 'Password Too Short');
+
+    const passwordError = validatePassword(password);
+    if (passwordError) {
+      setError(passwordError);
+      toastError(passwordError, 'Password Requirements');
       return;
     }
+
     if (computedWeeklyTarget <= 0) {
       const msg = 'Please enter a target value greater than 0.';
       setError(msg);
@@ -182,8 +202,9 @@ export default function RegisterPage() {
           </div>
 
           {error && (
-            <div className="mb-3 p-3 bg-coral/10 border-2 border-coral rounded-xl text-coral text-xs sm:text-sm font-semibold">
-              {error}
+            <div className="mb-3 p-3 bg-coral/10 border-2 border-coral rounded-xl text-coral text-xs sm:text-sm font-semibold flex items-center gap-2">
+              <ShieldAlert className="w-4 h-4 flex-shrink-0" />
+              <span>{error}</span>
             </div>
           )}
 
@@ -229,12 +250,36 @@ export default function RegisterPage() {
                 <input
                   type="password"
                   required
-                  placeholder="Minimum 6 characters"
+                  placeholder="Minimum 8 characters (letters & numbers)"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full pl-9 pr-3 py-2 bg-white border-2 border-gray-900 rounded-xl placeholder-gray-400 text-xs sm:text-sm font-medium shadow-brutal-sm focus:border-violet focus:outline-none transition-all"
                 />
               </div>
+
+              {/* Password Requirement Indicators */}
+              {password.length > 0 && (
+                <div className="mt-1.5 flex flex-wrap gap-2 text-[11px] font-medium">
+                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md border ${
+                    hasMinLength ? 'bg-green-50 text-green-700 border-green-300' : 'bg-gray-50 text-gray-500 border-gray-200'
+                  }`}>
+                    {hasMinLength ? <Check className="w-3 h-3 text-green-600" /> : <X className="w-3 h-3 text-gray-400" />}
+                    <span>8+ chars</span>
+                  </span>
+                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md border ${
+                    hasLetter ? 'bg-green-50 text-green-700 border-green-300' : 'bg-gray-50 text-gray-500 border-gray-200'
+                  }`}>
+                    {hasLetter ? <Check className="w-3 h-3 text-green-600" /> : <X className="w-3 h-3 text-gray-400" />}
+                    <span>1+ letter</span>
+                  </span>
+                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md border ${
+                    hasNumber ? 'bg-green-50 text-green-700 border-green-300' : 'bg-gray-50 text-gray-500 border-gray-200'
+                  }`}>
+                    {hasNumber ? <Check className="w-3 h-3 text-green-600" /> : <X className="w-3 h-3 text-gray-400" />}
+                    <span>1+ number</span>
+                  </span>
+                </div>
+              )}
             </div>
 
             {/* Intuitive Target Builder Card */}

@@ -26,7 +26,7 @@ describe('Workouts Component', () => {
     );
 
     expect(screen.getByRole('heading', { name: /Workout Sessions/i })).toBeTruthy();
-    expect(screen.getByPlaceholderText(/Search by activity name/i)).toBeTruthy();
+    expect(screen.getByPlaceholderText(/Search activities/i)).toBeTruthy();
   });
 
   it('opens and closes workout logging modal', () => {

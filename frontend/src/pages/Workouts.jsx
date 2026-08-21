@@ -3,7 +3,8 @@ import { useAuth } from '../context/AuthContext';
 import api from '../api';
 import {
   Plus, Search, Calendar, Clock, Trash2, Edit3, X, Dumbbell,
-  AlertCircle, Activity, ChevronDown, ChevronUp, Sparkles
+  AlertCircle, Activity, ChevronDown, ChevronUp, Sparkles, Copy,
+  ChevronLeft, ChevronRight, Filter, ArrowUpDown, Check
 } from 'lucide-react';
 
 const QUICK_ACTIVITIES = [
@@ -17,13 +18,28 @@ const QUICK_ACTIVITIES = [
 
 const DURATION_PRESETS = [15, 30, 45, 60, 90];
 
+const CATEGORY_TABS = [
+  'All',
+  'Running',
+  'Weightlifting',
+  'HIIT / Cardio',
+  'Cycling',
+  'Crossfit'
+];
+
 export default function Workouts() {
   const { user } = useAuth();
   const [workouts, setWorkouts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [activeCategory, setActiveCategory] = useState('All');
+  const [sortBy, setSortBy] = useState('newest'); // 'newest' | 'oldest' | 'duration' | 'value' | 'alphabetical'
 
-  // Modal state: null | 'create' | 'edit'
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(6);
+
+  // Modal state: null | 'create' | 'edit' | 'duplicate'
   const [modal, setModal] = useState(null);
   const [editTarget, setEditTarget] = useState(null);
 
@@ -35,6 +51,7 @@ export default function Workouts() {
   const [showCustomMetric, setShowCustomMetric] = useState(false);
   const [fError, setFError] = useState('');
   const [saving, setSaving] = useState(false);
+  const [actionSuccess, setActionSuccess] = useState('');
 
   const fetchWorkouts = async () => {
     if (!user?.id) return;
@@ -71,12 +88,43 @@ export default function Workouts() {
     setFDate(w.workoutDate || new Date().toISOString().split('T')[0]);
     setFActivity(w.activity || '');
     setFDuration(String(w.duration || 45));
-    // If value differs from duration, pre-fill custom metric
     const hasCustomVal = w.valueAchieved != null && w.valueAchieved !== w.duration;
     setFValue(hasCustomVal ? String(w.valueAchieved) : '');
     setShowCustomMetric(hasCustomVal);
     setFError('');
     setModal('edit');
+  };
+
+  // Open duplicate modal (pre-populates with today's date)
+  const openDuplicate = (w) => {
+    setEditTarget(w);
+    setFDate(new Date().toISOString().split('T')[0]);
+    setFActivity(w.activity || '');
+    setFDuration(String(w.duration || 45));
+    const hasCustomVal = w.valueAchieved != null && w.valueAchieved !== w.duration;
+    setFValue(hasCustomVal ? String(w.valueAchieved) : '');
+    setShowCustomMetric(hasCustomVal);
+    setFError('');
+    setModal('duplicate');
+  };
+
+  // Quick 1-click duplicate for today
+  const handleQuickDuplicate = async (w) => {
+    try {
+      const payload = {
+        workoutDate: new Date().toISOString().split('T')[0],
+        activity: w.activity,
+        duration: w.duration,
+        valueAchieved: w.valueAchieved,
+        userId: user.id,
+      };
+      await api.post('/api/workouts', payload);
+      setActionSuccess(`Duplicated "${w.activity}" for today.`);
+      setTimeout(() => setActionSuccess(''), 3000);
+      await fetchWorkouts();
+    } catch (err) {
+      alert('Duplicate failed: ' + (err.response?.data?.message || err.message));
+    }
   };
 
   // Submit handler
@@ -94,7 +142,6 @@ export default function Workouts() {
       return;
     }
 
-    // Determine value achieved: if user entered a custom value, use it; otherwise default to duration
     let val = dur;
     if (fValue.trim()) {
       val = parseFloat(fValue);
@@ -114,11 +161,14 @@ export default function Workouts() {
 
     setSaving(true);
     try {
-      if (modal === 'create') {
+      if (modal === 'create' || modal === 'duplicate') {
         await api.post('/api/workouts', payload);
+        setActionSuccess(modal === 'duplicate' ? 'Duplicated session saved.' : 'Workout logged successfully.');
       } else {
         await api.put(`/api/workouts/${editTarget.id}`, payload);
+        setActionSuccess('Workout updated successfully.');
       }
+      setTimeout(() => setActionSuccess(''), 3000);
       setModal(null);
       await fetchWorkouts();
     } catch (err) {
@@ -134,17 +184,61 @@ export default function Workouts() {
     try {
       await api.delete(`/api/workouts/${id}`);
       setWorkouts((prev) => prev.filter((w) => w.id !== id));
+      setActionSuccess('Workout deleted.');
+      setTimeout(() => setActionSuccess(''), 3000);
     } catch (err) {
       alert('Delete failed: ' + (err.response?.data?.message || err.message));
     }
   };
 
-  const filtered = workouts.filter((w) =>
-    w.activity?.toLowerCase().includes(search.toLowerCase())
-  );
+  // Filter & Search
+  let filtered = workouts.filter((w) => {
+    const matchesSearch = w.activity?.toLowerCase().includes(search.toLowerCase());
+    const matchesCategory =
+      activeCategory === 'All' ||
+      w.activity?.toLowerCase().includes(activeCategory.toLowerCase().split(' ')[0]);
+    return matchesSearch && matchesCategory;
+  });
+
+  // Sorting
+  filtered.sort((a, b) => {
+    if (sortBy === 'newest') return (b.workoutDate || '').localeCompare(a.workoutDate || '');
+    if (sortBy === 'oldest') return (a.workoutDate || '').localeCompare(b.workoutDate || '');
+    if (sortBy === 'duration') return (b.duration || 0) - (a.duration || 0);
+    if (sortBy === 'value') return (b.valueAchieved || 0) - (a.valueAchieved || 0);
+    if (sortBy === 'alphabetical') return (a.activity || '').localeCompare(b.activity || '');
+    return 0;
+  });
+
+  // Pagination calculation
+  const totalItems = filtered.length;
+  const totalPages = Math.max(Math.ceil(totalItems / pageSize), 1);
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+  const startIndex = (safeCurrentPage - 1) * pageSize;
+  const paginatedWorkouts = filtered.slice(startIndex, startIndex + pageSize);
+
+  const handlePageChange = (p) => {
+    if (p >= 1 && p <= totalPages) {
+      setCurrentPage(p);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
 
   return (
     <div className="space-y-6 font-outfit max-w-6xl mx-auto">
+      {/* Action toast */}
+      {actionSuccess && (
+        <div className="p-4 bg-lime border-2 border-gray-900 rounded-2xl font-bold text-sm text-gray-900 shadow-brutal flex items-center justify-between animate-pulse">
+          <span className="flex items-center gap-2">
+            <Check className="w-5 h-5" />
+            <span>{actionSuccess}</span>
+          </span>
+          <button onClick={() => setActionSuccess('')} className="text-gray-700 font-extrabold text-xs">
+            Dismiss
+          </button>
+        </div>
+      )}
+
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
         <div>
@@ -154,7 +248,9 @@ export default function Workouts() {
             </div>
             <span>Workout Sessions</span>
           </h1>
-          <p className="text-gray-500 font-medium mt-1">Log and track your training activities.</p>
+          <p className="text-gray-500 font-medium mt-1">
+            Log, duplicate, sort, and manage your training logs.
+          </p>
         </div>
 
         <button
@@ -166,24 +262,88 @@ export default function Workouts() {
         </button>
       </div>
 
-      {/* Search and Filters Bar */}
-      <div className="relative">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-        <input
-          type="text"
-          placeholder="Search by activity name (e.g. Running, HIIT, Deadlifts)..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-full pl-12 pr-10 py-3.5 bg-white border-2 border-gray-200 rounded-2xl font-medium placeholder-gray-400 focus:border-gray-900 focus:outline-none transition-all shadow-sm"
-        />
-        {search && (
-          <button
-            onClick={() => setSearch('')}
-            className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-900 p-1"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        )}
+      {/* Controls Bar: Search, Category Pills, Sort, and Page Size */}
+      <div className="bg-white border-2 border-gray-900 rounded-3xl p-5 shadow-brutal space-y-4">
+        <div className="flex flex-col md:flex-row gap-3">
+          {/* Search bar */}
+          <div className="relative flex-1">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search activities (e.g. Running, HIIT, Deadlifts)..."
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="w-full pl-11 pr-10 py-2.5 bg-sand/60 border-2 border-gray-200 rounded-xl font-medium placeholder-gray-400 focus:border-gray-900 focus:outline-none transition-all text-sm"
+            />
+            {search && (
+              <button
+                onClick={() => setSearch('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-900 p-1"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+
+          {/* Sort selector */}
+          <div className="flex items-center gap-2">
+            <div className="relative">
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="appearance-none pl-9 pr-8 py-2.5 bg-sand/60 border-2 border-gray-200 rounded-xl text-sm font-bold text-gray-700 focus:border-gray-900 focus:outline-none"
+              >
+                <option value="newest">Sort: Newest First</option>
+                <option value="oldest">Sort: Oldest First</option>
+                <option value="duration">Sort: Longest Duration</option>
+                <option value="value">Sort: Highest Score</option>
+                <option value="alphabetical">Sort: Activity (A-Z)</option>
+              </select>
+              <ArrowUpDown className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-500 pointer-events-none" />
+              <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-500 pointer-events-none" />
+            </div>
+
+            {/* Page size selector */}
+            <div className="relative">
+              <select
+                value={pageSize}
+                onChange={(e) => {
+                  setPageSize(Number(e.target.value));
+                  setCurrentPage(1);
+                }}
+                className="appearance-none pl-3 pr-7 py-2.5 bg-sand/60 border-2 border-gray-200 rounded-xl text-sm font-bold text-gray-700 focus:border-gray-900 focus:outline-none"
+              >
+                <option value={6}>6 / page</option>
+                <option value={9}>9 / page</option>
+                <option value={12}>12 / page</option>
+              </select>
+              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-500 pointer-events-none" />
+            </div>
+          </div>
+        </div>
+
+        {/* Category Filter Pills */}
+        <div className="flex flex-wrap gap-2 pt-1 border-t border-gray-100">
+          {CATEGORY_TABS.map((cat) => (
+            <button
+              key={cat}
+              onClick={() => {
+                setActiveCategory(cat);
+                setCurrentPage(1);
+              }}
+              className={`text-xs font-bold px-3.5 py-1.5 rounded-xl border-2 transition-all ${
+                activeCategory === cat
+                  ? 'bg-lime text-gray-900 border-gray-900 shadow-brutal-sm'
+                  : 'bg-sand/40 text-gray-600 border-gray-200 hover:border-gray-400'
+              }`}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Workouts Grid */}
@@ -206,7 +366,7 @@ export default function Workouts() {
           </h3>
           <p className="text-gray-500 font-medium mb-6 max-w-sm mx-auto">
             {search
-              ? `No activities matched "${search}". Try searching for another keyword.`
+              ? `No activities matched "${search}". Try resetting your search or filter.`
               : 'Log your first workout to start tracking your time, volume, and weekly progress.'}
           </p>
           {!search && (
@@ -220,59 +380,129 @@ export default function Workouts() {
           )}
         </div>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {filtered.map((w) => (
-            <div
-              key={w.id}
-              className="bg-white border-2 border-gray-200 rounded-2xl p-5 hover:border-gray-900 hover:shadow-brutal transition-all flex flex-col justify-between"
-            >
-              <div>
-                {/* Header with Activity and Score Badge */}
-                <div className="flex items-start justify-between gap-3 mb-3">
-                  <h3 className="text-lg font-black text-gray-900 break-words leading-tight flex-1">
-                    {w.activity}
-                  </h3>
-                  <span className="flex-shrink-0 bg-lime/40 border border-gray-900/30 rounded-lg px-2.5 py-1 text-xs font-bold text-gray-900">
-                    {w.valueAchieved ?? w.duration} pts
-                  </span>
+        <div className="space-y-6">
+          {/* Workout Cards Grid */}
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {paginatedWorkouts.map((w) => (
+              <div
+                key={w.id}
+                className="bg-white border-2 border-gray-200 rounded-3xl p-5 hover:border-gray-900 hover:shadow-brutal transition-all flex flex-col justify-between"
+              >
+                <div>
+                  {/* Header: Activity Name & Score Badge */}
+                  <div className="flex items-start justify-between gap-3 mb-2">
+                    <h3 className="text-lg font-black text-gray-900 break-words leading-tight flex-1">
+                      {w.activity}
+                    </h3>
+                    <span className="flex-shrink-0 bg-lime/40 border border-gray-900/30 rounded-lg px-2.5 py-1 text-xs font-bold text-gray-900">
+                      {w.valueAchieved ?? w.duration} pts
+                    </span>
+                  </div>
+
+                  {/* Metadata: Date and Duration */}
+                  <div className="flex items-center gap-4 text-xs font-semibold text-gray-500 mb-4">
+                    <span className="flex items-center gap-1.5">
+                      <Calendar className="w-3.5 h-3.5 text-gray-400" />
+                      <span>{w.workoutDate}</span>
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                      <Clock className="w-3.5 h-3.5 text-gray-400" />
+                      <span>{w.duration} min</span>
+                    </span>
+                  </div>
                 </div>
 
-                {/* Session Details */}
-                <div className="flex items-center gap-4 text-xs font-semibold text-gray-500 mb-5">
-                  <span className="flex items-center gap-1.5">
-                    <Calendar className="w-3.5 h-3.5 text-gray-400" />
-                    <span>{w.workoutDate}</span>
-                  </span>
-                  <span className="flex items-center gap-1.5">
-                    <Clock className="w-3.5 h-3.5 text-gray-400" />
-                    <span>{w.duration} min</span>
-                  </span>
+                {/* Card Action Buttons: Edit, Duplicate, Delete */}
+                <div className="space-y-2 pt-3 border-t border-gray-100">
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => openEdit(w)}
+                      className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-sand border-2 border-gray-200 rounded-xl text-gray-700 font-bold text-xs hover:border-gray-900 hover:text-gray-900 transition-all"
+                    >
+                      <Edit3 className="w-3.5 h-3.5" />
+                      <span>Edit</span>
+                    </button>
+
+                    <button
+                      onClick={() => openDuplicate(w)}
+                      className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-sand border-2 border-gray-200 rounded-xl text-gray-700 font-bold text-xs hover:border-gray-900 hover:text-gray-900 transition-all"
+                      title="Duplicate this workout"
+                    >
+                      <Copy className="w-3.5 h-3.5" />
+                      <span>Duplicate</span>
+                    </button>
+
+                    <button
+                      onClick={() => handleDelete(w.id)}
+                      className="flex items-center justify-center px-3 py-2 bg-sand border-2 border-gray-200 rounded-xl text-gray-400 hover:bg-coral/10 hover:border-coral hover:text-coral transition-all"
+                      title="Delete workout"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  {/* 1-Click Quick Repeat Today */}
+                  <button
+                    onClick={() => handleQuickDuplicate(w)}
+                    className="w-full flex items-center justify-center gap-1.5 py-1.5 bg-white border border-gray-300 rounded-xl text-[11px] font-bold text-gray-600 hover:border-gray-900 hover:bg-sand transition-all"
+                  >
+                    <Sparkles className="w-3 h-3 text-lime" />
+                    <span>Quick Repeat Today</span>
+                  </button>
                 </div>
               </div>
+            ))}
+          </div>
 
-              {/* Action Buttons */}
-              <div className="flex gap-2 pt-3 border-t border-gray-100">
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="bg-white border-2 border-gray-900 rounded-2xl p-4 shadow-brutal flex flex-col sm:flex-row justify-between items-center gap-4">
+              <div className="text-xs font-bold text-gray-600">
+                Showing {startIndex + 1} to {Math.min(startIndex + pageSize, totalItems)} of {totalItems} workouts
+              </div>
+
+              <div className="flex items-center gap-2">
                 <button
-                  onClick={() => openEdit(w)}
-                  className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-sand border-2 border-gray-200 rounded-xl text-gray-700 font-bold text-xs hover:border-gray-900 hover:text-gray-900 transition-all"
+                  disabled={safeCurrentPage <= 1}
+                  onClick={() => handlePageChange(safeCurrentPage - 1)}
+                  className="p-2 rounded-xl border-2 border-gray-900 bg-sand text-gray-900 disabled:opacity-40 disabled:pointer-events-none hover:bg-lime transition-all shadow-brutal-sm active:translate-x-0.5 active:translate-y-0.5"
+                  title="Previous Page"
                 >
-                  <Edit3 className="w-3.5 h-3.5" />
-                  <span>Edit</span>
+                  <ChevronLeft className="w-4 h-4" />
                 </button>
+
+                {/* Page Number Chips */}
+                <div className="flex gap-1">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
+                    <button
+                      key={pageNum}
+                      onClick={() => handlePageChange(pageNum)}
+                      className={`w-8 h-8 rounded-xl border-2 font-bold text-xs transition-all ${
+                        pageNum === safeCurrentPage
+                          ? 'bg-gray-900 text-white border-gray-900 shadow-brutal-sm'
+                          : 'bg-sand text-gray-700 border-gray-200 hover:border-gray-900'
+                      }`}
+                    >
+                      {pageNum}
+                    </button>
+                  ))}
+                </div>
+
                 <button
-                  onClick={() => handleDelete(w.id)}
-                  className="flex items-center justify-center px-3 py-2 bg-sand border-2 border-gray-200 rounded-xl text-gray-400 hover:bg-coral/10 hover:border-coral hover:text-coral transition-all"
-                  title="Delete workout"
+                  disabled={safeCurrentPage >= totalPages}
+                  onClick={() => handlePageChange(safeCurrentPage + 1)}
+                  className="p-2 rounded-xl border-2 border-gray-900 bg-sand text-gray-900 disabled:opacity-40 disabled:pointer-events-none hover:bg-lime transition-all shadow-brutal-sm active:translate-x-0.5 active:translate-y-0.5"
+                  title="Next Page"
                 >
-                  <Trash2 className="w-4 h-4" />
+                  <ChevronRight className="w-4 h-4" />
                 </button>
               </div>
             </div>
-          ))}
+          )}
         </div>
       )}
 
-      {/* Create / Edit Modal Dialog */}
+      {/* Create / Edit / Duplicate Modal Dialog */}
       {modal && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs"
@@ -286,7 +516,13 @@ export default function Workouts() {
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
                 <Dumbbell className="w-5 h-5 text-lime" />
-                <span>{modal === 'create' ? 'Log Workout' : 'Edit Workout'}</span>
+                <span>
+                  {modal === 'create'
+                    ? 'Log Workout'
+                    : modal === 'duplicate'
+                    ? 'Duplicate Workout'
+                    : 'Edit Workout'}
+                </span>
               </h2>
               <button
                 onClick={() => setModal(null)}
@@ -445,7 +681,13 @@ export default function Workouts() {
                   disabled={saving}
                   className="flex-1 py-3 bg-gray-900 text-white border-2 border-gray-900 rounded-xl font-bold text-sm shadow-brutal-lime hover:bg-lime hover:text-gray-900 transition-all active:translate-x-0.5 active:translate-y-0.5 active:shadow-none disabled:opacity-50"
                 >
-                  {saving ? 'Saving...' : modal === 'create' ? 'Save Workout' : 'Update Workout'}
+                  {saving
+                    ? 'Saving...'
+                    : modal === 'create'
+                    ? 'Save Workout'
+                    : modal === 'duplicate'
+                    ? 'Save Duplicate'
+                    : 'Update Workout'}
                 </button>
               </div>
             </form>

@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import api from '../api';
 import {
   Flame, Target, Dumbbell, TrendingUp, Plus, Calendar, Clock,
-  Trophy, ArrowRight, RefreshCw, Zap, CheckCircle2
+  Trophy, ArrowRight, RefreshCw, Zap, CheckCircle2, Award, Sparkles, Copy
 } from 'lucide-react';
 
 export default function Dashboard() {
@@ -12,6 +12,7 @@ export default function Dashboard() {
   const [summary, setSummary] = useState(null);
   const [workouts, setWorkouts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [duplicateSuccess, setDuplicateSuccess] = useState('');
 
   const fetchData = async () => {
     if (!user?.id) { setLoading(false); return; }
@@ -32,11 +33,69 @@ export default function Dashboard() {
 
   useEffect(() => { fetchData(); }, [user]);
 
+  // Quick Duplicate workout for today
+  const handleQuickDuplicate = async (w) => {
+    try {
+      const payload = {
+        workoutDate: new Date().toISOString().split('T')[0],
+        activity: w.activity,
+        duration: w.duration,
+        valueAchieved: w.valueAchieved,
+        userId: user.id,
+      };
+      await api.post('/api/workouts', payload);
+      setDuplicateSuccess(`Logged another session of ${w.activity}!`);
+      setTimeout(() => setDuplicateSuccess(''), 3000);
+      await fetchData();
+    } catch (err) {
+      alert('Duplicate failed: ' + (err.response?.data?.message || err.message));
+    }
+  };
+
   const total = summary?.totalWorkouts ?? 0;
   const achieved = summary?.totalValueAchieved ?? 0;
   const target = summary?.targetValue || user?.targetValue || 100;
   const goal = summary?.goalType || user?.goalType || 'fitness';
   const pct = Math.min(summary?.percentage ?? 0, 100);
+
+  // Calculate current streak
+  const uniqueDates = Array.from(new Set(workouts.map((w) => w.workoutDate))).sort().reverse();
+  let currentStreak = 0;
+  if (uniqueDates.length > 0) {
+    const today = new Date().toISOString().split('T')[0];
+    const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+    let checkDate = uniqueDates.includes(today) ? new Date() : uniqueDates.includes(yesterday) ? new Date(Date.now() - 86400000) : null;
+
+    if (checkDate) {
+      for (const dStr of uniqueDates) {
+        const expectedStr = checkDate.toISOString().split('T')[0];
+        if (dStr === expectedStr) {
+          currentStreak += 1;
+          checkDate.setDate(checkDate.getDate() - 1);
+        } else {
+          break;
+        }
+      }
+    }
+  }
+
+  // 7-day tracker for current week (Mon-Sun)
+  const currentWeekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((dayName, idx) => {
+    // Determine date for each day of current week
+    const now = new Date();
+    const currentDayOfWeek = now.getDay(); // 0 is Sunday, 1 is Monday...
+    const distanceToMonday = (currentDayOfWeek + 6) % 7;
+    const monday = new Date(now);
+    monday.setDate(now.getDate() - distanceToMonday);
+
+    const targetDay = new Date(monday);
+    targetDay.setDate(monday.getDate() + idx);
+    const dateStr = targetDay.toISOString().split('T')[0];
+    const hasWorkout = workouts.some((w) => w.workoutDate === dateStr);
+    const isToday = dateStr === now.toISOString().split('T')[0];
+
+    return { dayName, dateStr, hasWorkout, isToday };
+  });
 
   const cards = [
     { label: 'Workouts Completed', value: total, icon: Dumbbell, color: 'bg-sky', shadow: 'shadow-brutal-sky' },
@@ -46,9 +105,22 @@ export default function Dashboard() {
   ];
 
   return (
-    <div className="space-y-8 font-outfit">
+    <div className="space-y-8 font-outfit max-w-6xl mx-auto">
+      {/* Alert toast for quick duplicate */}
+      {duplicateSuccess && (
+        <div className="p-4 bg-lime border-2 border-gray-900 rounded-2xl font-bold text-sm text-gray-900 shadow-brutal flex items-center justify-between animate-bounce">
+          <span className="flex items-center gap-2">
+            <Sparkles className="w-5 h-5 text-gray-900" />
+            <span>{duplicateSuccess}</span>
+          </span>
+          <button onClick={() => setDuplicateSuccess('')} className="text-gray-700 hover:text-gray-900 font-extrabold text-sm">
+            Dismiss
+          </button>
+        </div>
+      )}
+
       {/* Greeting Banner */}
-      <div className="bg-lime border-2 border-gray-900 rounded-2xl p-6 sm:p-8 shadow-brutal-lg">
+      <div className="bg-lime border-2 border-gray-900 rounded-3xl p-6 sm:p-8 shadow-brutal-lg">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <p className="text-sm font-semibold text-gray-700 mb-1">
@@ -57,8 +129,10 @@ export default function Dashboard() {
             <h1 className="text-3xl sm:text-4xl font-black text-gray-900 leading-tight">
               Welcome back, {user?.name?.split(' ')[0] || 'Athlete'}
             </h1>
-            <p className="text-gray-700 font-medium mt-1">
-              {pct >= 100 ? "You have reached your weekly goal." : `${(100 - pct).toFixed(0)}% remaining to reach your weekly target.`}
+            <p className="text-gray-800 font-medium mt-1">
+              {pct >= 100
+                ? 'You have reached your weekly goal. Outstanding effort!'
+                : `${(100 - pct).toFixed(0)}% remaining to hit your weekly target.`}
             </p>
           </div>
           <div className="flex gap-3">
@@ -80,7 +154,61 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Stats Cards */}
+      {/* Streak & Weekly Activity Highlights Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Live Streak Widget */}
+        <div className="bg-white border-2 border-gray-900 rounded-3xl p-6 shadow-brutal flex items-center gap-5">
+          <div className="w-16 h-16 rounded-2xl bg-coral/20 border-2 border-gray-900 shadow-brutal-sm flex items-center justify-center flex-shrink-0">
+            <Flame className="w-9 h-9 text-coral animate-pulse" />
+          </div>
+          <div>
+            <span className="text-xs font-bold uppercase tracking-wider text-gray-500">Active Streak</span>
+            <div className="flex items-baseline gap-1.5 mt-0.5">
+              <span className="text-3xl font-black text-gray-900">{currentStreak}</span>
+              <span className="text-sm font-bold text-gray-600">{currentStreak === 1 ? 'Day' : 'Days'}</span>
+            </div>
+            <p className="text-xs text-gray-500 font-medium mt-0.5">
+              {currentStreak > 0 ? 'Consistent training streak' : 'Log a session to start'}
+            </p>
+          </div>
+        </div>
+
+        {/* 7-Day Day-by-Day Activity Tracker */}
+        <div className="md:col-span-2 bg-white border-2 border-gray-900 rounded-3xl p-6 shadow-brutal space-y-3">
+          <div className="flex justify-between items-center">
+            <span className="text-xs font-bold uppercase tracking-wider text-gray-500">This Week Activity</span>
+            <span className="text-xs font-bold text-gray-800 bg-sand px-2.5 py-1 rounded-lg border border-gray-200">
+              {currentWeekDays.filter((d) => d.hasWorkout).length} / 7 Days Active
+            </span>
+          </div>
+
+          <div className="grid grid-cols-7 gap-2 pt-1">
+            {currentWeekDays.map((d) => (
+              <div
+                key={d.dayName}
+                className={`p-2.5 rounded-2xl border-2 text-center transition-all ${
+                  d.hasWorkout
+                    ? 'bg-lime border-gray-900 shadow-brutal-sm'
+                    : d.isToday
+                    ? 'bg-sand border-gray-900 border-dashed'
+                    : 'bg-sand/40 border-gray-200 opacity-60'
+                }`}
+              >
+                <p className="text-xs font-bold text-gray-800">{d.dayName}</p>
+                <div className="w-5 h-5 mx-auto mt-1 flex items-center justify-center">
+                  {d.hasWorkout ? (
+                    <CheckCircle2 className="w-4 h-4 text-gray-900" />
+                  ) : (
+                    <div className="w-2 h-2 rounded-full bg-gray-300" />
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Metrics Stat Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {cards.map((card) => {
           const Icon = card.icon;
@@ -102,8 +230,8 @@ export default function Dashboard() {
         })}
       </div>
 
-      {/* Progress Bar */}
-      <div className="bg-white border-2 border-gray-900 rounded-2xl p-6 shadow-brutal">
+      {/* Weekly Progress Bar */}
+      <div className="bg-white border-2 border-gray-900 rounded-3xl p-6 sm:p-8 shadow-brutal">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
           <div>
             <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
@@ -128,8 +256,8 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Recent Workouts */}
-      <div className="bg-white border-2 border-gray-900 rounded-2xl p-6 shadow-brutal">
+      {/* Recent Activity Feed with Quick Duplicate */}
+      <div className="bg-white border-2 border-gray-900 rounded-3xl p-6 sm:p-8 shadow-brutal">
         <div className="flex items-center justify-between mb-5">
           <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
             <Flame className="w-5 h-5 text-coral" />
@@ -163,24 +291,36 @@ export default function Dashboard() {
             {workouts.slice(0, 6).map((w) => (
               <div
                 key={w.id}
-                className="bg-cream border-2 border-gray-200 rounded-xl p-4 hover:border-gray-900 hover:shadow-brutal-sm transition-all"
+                className="bg-cream border-2 border-gray-200 rounded-2xl p-4 hover:border-gray-900 hover:shadow-brutal-sm transition-all flex flex-col justify-between"
               >
-                <h3 className="font-bold text-gray-900 text-base truncate mb-2">{w.activity}</h3>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3 text-sm text-gray-500">
+                <div>
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <h3 className="font-bold text-gray-900 text-base truncate flex-1">{w.activity}</h3>
+                    <span className="text-xs font-bold text-gray-900 bg-lime/40 px-2 py-0.5 rounded-md border border-gray-900/20">
+                      {w.valueAchieved ?? w.duration} pts
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3 text-xs font-semibold text-gray-500 mb-3">
                     <span className="flex items-center gap-1">
-                      <Calendar className="w-3.5 h-3.5" />
+                      <Calendar className="w-3.5 h-3.5 text-gray-400" />
                       <span>{w.workoutDate}</span>
                     </span>
                     <span className="flex items-center gap-1">
-                      <Clock className="w-3.5 h-3.5" />
+                      <Clock className="w-3.5 h-3.5 text-gray-400" />
                       <span>{w.duration}m</span>
                     </span>
                   </div>
-                  <span className="text-sm font-bold text-gray-900 bg-lime/50 px-2 py-0.5 rounded-md">
-                    {w.valueAchieved ?? 0}
-                  </span>
                 </div>
+
+                {/* Quick Duplicate Button */}
+                <button
+                  onClick={() => handleQuickDuplicate(w)}
+                  className="w-full flex items-center justify-center gap-1.5 py-1.5 bg-white border border-gray-300 rounded-xl text-xs font-bold text-gray-700 hover:border-gray-900 hover:bg-sand transition-all shadow-xs"
+                  title="Repeat workout today"
+                >
+                  <Copy className="w-3.5 h-3.5 text-gray-500" />
+                  <span>Repeat Today</span>
+                </button>
               </div>
             ))}
           </div>

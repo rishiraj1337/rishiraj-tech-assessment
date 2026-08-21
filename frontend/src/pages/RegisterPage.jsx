@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import {
   Mail, Lock, User, Target, Dumbbell, TrendingUp, Zap, ArrowRight,
   Flame, Info, Sparkles
@@ -33,6 +34,7 @@ const HIGHLIGHTS = [
 export default function RegisterPage() {
   const navigate = useNavigate();
   const { register } = useAuth();
+  const { error: toastError, formatApiError } = useToast();
 
   // Basic account info
   const [name, setName] = useState('');
@@ -91,15 +93,21 @@ export default function RegisterPage() {
     setError('');
 
     if (!name.trim() || !email.trim() || !password) {
-      setError('Please fill in all fields.');
+      const msg = 'Please fill in all fields.';
+      setError(msg);
+      toastError(msg, 'Incomplete Form');
       return;
     }
     if (password.length < 6) {
-      setError('Password must be at least 6 characters long.');
+      const msg = 'Password must be at least 6 characters long.';
+      setError(msg);
+      toastError(msg, 'Password Too Short');
       return;
     }
     if (computedWeeklyTarget <= 0) {
-      setError('Please enter a target value greater than 0.');
+      const msg = 'Please enter a target value greater than 0.';
+      setError(msg);
+      toastError(msg, 'Invalid Target');
       return;
     }
 
@@ -114,7 +122,9 @@ export default function RegisterPage() {
       });
       navigate('/dashboard', { replace: true });
     } catch (err) {
-      setError(err.response?.data?.message || 'Registration failed. Please try a different email.');
+      const msg = formatApiError(err, 'Registration failed. Please try a different email.');
+      setError(msg);
+      toastError(msg, 'Registration Error');
     } finally {
       setLoading(false);
     }

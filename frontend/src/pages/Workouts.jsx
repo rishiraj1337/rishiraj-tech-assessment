@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import api from '../api';
 import {
   Plus, Search, Calendar, Clock, Trash2, Edit3, X, Dumbbell,
@@ -29,6 +30,7 @@ const CATEGORY_TABS = [
 
 export default function Workouts() {
   const { user } = useAuth();
+  const { error: toastError, success: toastSuccess, formatApiError } = useToast();
   const [workouts, setWorkouts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -61,6 +63,7 @@ export default function Workouts() {
       setWorkouts(res.data || []);
     } catch (err) {
       console.error('Failed to load workouts', err);
+      toastError(formatApiError(err, 'Failed to load workouts.'), 'Load Failed');
     } finally {
       setLoading(false);
     }
@@ -119,11 +122,14 @@ export default function Workouts() {
         userId: user.id,
       };
       await api.post('/api/workouts', payload);
-      setActionSuccess(`Duplicated "${w.activity}" for today.`);
+      const msg = `Duplicated "${w.activity}" for today.`;
+      setActionSuccess(msg);
+      toastSuccess(msg, 'Workout Repeated');
       setTimeout(() => setActionSuccess(''), 3000);
       await fetchWorkouts();
     } catch (err) {
-      alert('Duplicate failed: ' + (err.response?.data?.message || err.message));
+      const errMsg = formatApiError(err, 'Failed to duplicate workout.');
+      toastError(errMsg, 'Duplication Error');
     }
   };
 
@@ -133,12 +139,16 @@ export default function Workouts() {
     setFError('');
 
     if (!fActivity.trim()) {
-      setFError('Please enter or select an activity.');
+      const msg = 'Please enter or select an activity.';
+      setFError(msg);
+      toastError(msg, 'Validation Error');
       return;
     }
     const dur = parseInt(fDuration, 10);
     if (isNaN(dur) || dur <= 0) {
-      setFError('Duration must be a positive number of minutes.');
+      const msg = 'Duration must be a positive number of minutes.';
+      setFError(msg);
+      toastError(msg, 'Validation Error');
       return;
     }
 
@@ -146,7 +156,9 @@ export default function Workouts() {
     if (fValue.trim()) {
       val = parseFloat(fValue);
       if (isNaN(val) || val < 0) {
-        setFError('Custom metric must be zero or a positive number.');
+        const msg = 'Custom metric must be zero or a positive number.';
+        setFError(msg);
+        toastError(msg, 'Validation Error');
         return;
       }
     }
@@ -163,16 +175,22 @@ export default function Workouts() {
     try {
       if (modal === 'create' || modal === 'duplicate') {
         await api.post('/api/workouts', payload);
-        setActionSuccess(modal === 'duplicate' ? 'Duplicated session saved.' : 'Workout logged successfully.');
+        const msg = modal === 'duplicate' ? 'Duplicated session saved.' : 'Workout logged successfully.';
+        setActionSuccess(msg);
+        toastSuccess(msg, 'Success');
       } else {
         await api.put(`/api/workouts/${editTarget.id}`, payload);
-        setActionSuccess('Workout updated successfully.');
+        const msg = 'Workout updated successfully.';
+        setActionSuccess(msg);
+        toastSuccess(msg, 'Updated');
       }
       setTimeout(() => setActionSuccess(''), 3000);
       setModal(null);
       await fetchWorkouts();
     } catch (err) {
-      setFError(err.response?.data?.message || 'Failed to save workout. Please try again.');
+      const msg = formatApiError(err, 'Failed to save workout. Please try again.');
+      setFError(msg);
+      toastError(msg, 'Save Error');
     } finally {
       setSaving(false);
     }
@@ -184,10 +202,13 @@ export default function Workouts() {
     try {
       await api.delete(`/api/workouts/${id}`);
       setWorkouts((prev) => prev.filter((w) => w.id !== id));
-      setActionSuccess('Workout deleted.');
+      const msg = 'Workout deleted successfully.';
+      setActionSuccess(msg);
+      toastSuccess(msg, 'Deleted');
       setTimeout(() => setActionSuccess(''), 3000);
     } catch (err) {
-      alert('Delete failed: ' + (err.response?.data?.message || err.message));
+      const msg = formatApiError(err, 'Failed to delete workout.');
+      toastError(msg, 'Delete Error');
     }
   };
 

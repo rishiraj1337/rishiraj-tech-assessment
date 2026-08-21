@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import { Mail, Lock, ArrowRight, Flame, Target, Dumbbell, TrendingUp, Zap } from 'lucide-react';
 
 const HIGHLIGHTS = [
@@ -13,6 +14,7 @@ const HIGHLIGHTS = [
 export default function LoginPage() {
   const navigate = useNavigate();
   const { login } = useAuth();
+  const { error: toastError, formatApiError } = useToast();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -24,7 +26,9 @@ export default function LoginPage() {
     setError('');
 
     if (!email.trim() || !password) {
-      setError('Please enter your email and password.');
+      const msg = 'Please enter your email and password.';
+      setError(msg);
+      toastError(msg, 'Missing Credentials');
       return;
     }
 
@@ -33,7 +37,9 @@ export default function LoginPage() {
       await login(email.trim(), password);
       navigate('/dashboard', { replace: true });
     } catch (err) {
-      setError(err.response?.data?.message || 'Invalid email or password.');
+      const msg = formatApiError(err, 'Invalid email or password.');
+      setError(msg);
+      toastError(msg, 'Sign In Failed');
     } finally {
       setLoading(false);
     }

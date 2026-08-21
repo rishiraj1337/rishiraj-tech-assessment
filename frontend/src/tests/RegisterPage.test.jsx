@@ -3,15 +3,18 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import RegisterPage from '../pages/RegisterPage';
 import { AuthProvider } from '../context/AuthContext';
+import { ToastProvider } from '../context/ToastContext';
 
 describe('RegisterPage Component', () => {
   it('renders registration form elements and Target Builder', () => {
     render(
-      <AuthProvider>
-        <BrowserRouter>
-          <RegisterPage />
-        </BrowserRouter>
-      </AuthProvider>
+      <ToastProvider>
+        <AuthProvider>
+          <BrowserRouter>
+            <RegisterPage />
+          </BrowserRouter>
+        </AuthProvider>
+      </ToastProvider>
     );
 
     expect(screen.getByText(/Create your account/i)).toBeTruthy();
@@ -25,11 +28,13 @@ describe('RegisterPage Component', () => {
 
   it('toggles target builder info box when clicking How it works button', () => {
     render(
-      <AuthProvider>
-        <BrowserRouter>
-          <RegisterPage />
-        </BrowserRouter>
-      </AuthProvider>
+      <ToastProvider>
+        <AuthProvider>
+          <BrowserRouter>
+            <RegisterPage />
+          </BrowserRouter>
+        </AuthProvider>
+      </ToastProvider>
     );
 
     const infoBtn = screen.getByRole('button', { name: /How it works/i });
@@ -40,11 +45,13 @@ describe('RegisterPage Component', () => {
 
   it('switches frequency mode to Sessions and updates calculation', () => {
     render(
-      <AuthProvider>
-        <BrowserRouter>
-          <RegisterPage />
-        </BrowserRouter>
-      </AuthProvider>
+      <ToastProvider>
+        <AuthProvider>
+          <BrowserRouter>
+            <RegisterPage />
+          </BrowserRouter>
+        </AuthProvider>
+      </ToastProvider>
     );
 
     const sessionsBtn = screen.getByRole('button', { name: /Sessions/i });
@@ -56,11 +63,13 @@ describe('RegisterPage Component', () => {
 
   it('validates password length on submit', async () => {
     const { container } = render(
-      <AuthProvider>
-        <BrowserRouter>
-          <RegisterPage />
-        </BrowserRouter>
-      </AuthProvider>
+      <ToastProvider>
+        <AuthProvider>
+          <BrowserRouter>
+            <RegisterPage />
+          </BrowserRouter>
+        </AuthProvider>
+      </ToastProvider>
     );
 
     const nameInput = screen.getByPlaceholderText(/Alex Runner/i);
@@ -68,12 +77,12 @@ describe('RegisterPage Component', () => {
     const passInput = screen.getByPlaceholderText(/Minimum 6 characters/i);
 
     fireEvent.change(nameInput, { target: { value: 'Alex' } });
-    fireEvent.change(emailInput, { target: { value: 'alex@example.com' } });
+    fireEvent.change(emailInput, { target: { value: 'alex.runner@example.com' } });
     fireEvent.change(passInput, { target: { value: '123' } });
 
     const form = container.querySelector('form');
     fireEvent.submit(form);
 
-    expect(screen.getByText(/Password must be at least 6 characters long/i)).toBeTruthy();
+    expect(screen.getAllByText(/Password must be at least 6 characters long/i).length).toBeGreaterThan(0);
   });
 });

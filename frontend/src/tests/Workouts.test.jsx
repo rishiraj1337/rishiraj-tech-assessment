@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import Workouts from '../pages/Workouts';
 import { AuthProvider } from '../context/AuthContext';
+import { ToastProvider } from '../context/ToastContext';
 
 vi.mock('../api', () => ({
   default: {
@@ -20,9 +21,11 @@ vi.mock('../api', () => ({
 describe('Workouts Component', () => {
   it('renders workouts heading and search bar', () => {
     render(
-      <AuthProvider>
-        <Workouts />
-      </AuthProvider>
+      <ToastProvider>
+        <AuthProvider>
+          <Workouts />
+        </AuthProvider>
+      </ToastProvider>
     );
 
     expect(screen.getByRole('heading', { name: /Workout Sessions/i })).toBeTruthy();
@@ -31,9 +34,11 @@ describe('Workouts Component', () => {
 
   it('opens and closes workout logging modal', () => {
     render(
-      <AuthProvider>
-        <Workouts />
-      </AuthProvider>
+      <ToastProvider>
+        <AuthProvider>
+          <Workouts />
+        </AuthProvider>
+      </ToastProvider>
     );
 
     const logBtn = screen.getByRole('button', { name: /Log Workout/i });

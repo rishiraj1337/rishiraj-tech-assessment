@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import api from '../api';
 import {
   User, Mail, Target, Edit3, X, CheckCircle, Dumbbell, Award,
@@ -16,6 +17,7 @@ const GOALS = [
 
 export default function UserDetails() {
   const { user, updateUser } = useAuth();
+  const { error: toastError, success: toastSuccess, formatApiError } = useToast();
 
   const [profile, setProfile] = useState(user);
   const [workoutCount, setWorkoutCount] = useState(0);
@@ -48,6 +50,7 @@ export default function UserDetails() {
         setAvatarSeed(u.data.email || 'athlete');
       } catch (err) {
         console.error('Failed to load user profile', err);
+        toastError(formatApiError(err, 'Failed to load profile.'), 'Load Error');
       } finally {
         setLoading(false);
       }
@@ -60,12 +63,16 @@ export default function UserDetails() {
     setError('');
     setSuccess('');
     if (!name.trim()) {
-      setError('Name is required.');
+      const msg = 'Name is required.';
+      setError(msg);
+      toastError(msg, 'Validation Error');
       return;
     }
     const t = parseFloat(targetValue);
     if (isNaN(t) || t <= 0) {
-      setError('Target value must be a positive number.');
+      const msg = 'Target value must be a positive number.';
+      setError(msg);
+      toastError(msg, 'Validation Error');
       return;
     }
 
@@ -80,12 +87,15 @@ export default function UserDetails() {
       setProfile(res.data);
       updateUser(res.data);
       setSuccess('Profile updated successfully.');
+      toastSuccess('Profile updated successfully.', 'Profile Saved');
       setTimeout(() => {
         setEditing(false);
         setSuccess('');
       }, 1000);
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to update profile.');
+      const msg = formatApiError(err, 'Failed to update profile.');
+      setError(msg);
+      toastError(msg, 'Update Failed');
     } finally {
       setSaving(false);
     }

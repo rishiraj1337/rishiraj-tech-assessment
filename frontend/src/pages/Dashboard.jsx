@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import api from '../api';
 import {
   Flame, Target, Dumbbell, TrendingUp, Plus, Calendar, Clock,
@@ -9,6 +10,7 @@ import {
 
 export default function Dashboard() {
   const { user } = useAuth();
+  const { error: toastError, success: toastSuccess, formatApiError } = useToast();
   const [summary, setSummary] = useState(null);
   const [workouts, setWorkouts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -26,6 +28,7 @@ export default function Dashboard() {
       setWorkouts(w.data || []);
     } catch (err) {
       console.error('Dashboard fetch failed', err);
+      toastError(formatApiError(err, 'Failed to refresh dashboard stats.'), 'Dashboard Error');
     } finally {
       setLoading(false);
     }
@@ -44,11 +47,14 @@ export default function Dashboard() {
         userId: user.id,
       };
       await api.post('/api/workouts', payload);
-      setDuplicateSuccess(`Logged another session of ${w.activity}!`);
+      const msg = `Logged another session of ${w.activity}!`;
+      setDuplicateSuccess(msg);
+      toastSuccess(msg, 'Quick Repeat');
       setTimeout(() => setDuplicateSuccess(''), 3000);
       await fetchData();
     } catch (err) {
-      alert('Duplicate failed: ' + (err.response?.data?.message || err.message));
+      const msg = formatApiError(err, 'Failed to duplicate workout.');
+      toastError(msg, 'Duplication Error');
     }
   };
 

@@ -3,15 +3,18 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import LoginPage from '../pages/LoginPage';
 import { AuthProvider } from '../context/AuthContext';
+import { ToastProvider } from '../context/ToastContext';
 
 describe('LoginPage Component', () => {
   it('renders login form with email and password inputs', () => {
     render(
-      <AuthProvider>
-        <BrowserRouter>
-          <LoginPage />
-        </BrowserRouter>
-      </AuthProvider>
+      <ToastProvider>
+        <AuthProvider>
+          <BrowserRouter>
+            <LoginPage />
+          </BrowserRouter>
+        </AuthProvider>
+      </ToastProvider>
     );
 
     expect(screen.getByText(/Welcome back/i)).toBeTruthy();
@@ -22,16 +25,18 @@ describe('LoginPage Component', () => {
 
   it('validates empty inputs on submit and displays error', async () => {
     const { container } = render(
-      <AuthProvider>
-        <BrowserRouter>
-          <LoginPage />
-        </BrowserRouter>
-      </AuthProvider>
+      <ToastProvider>
+        <AuthProvider>
+          <BrowserRouter>
+            <LoginPage />
+          </BrowserRouter>
+        </AuthProvider>
+      </ToastProvider>
     );
 
     const form = container.querySelector('form');
     fireEvent.submit(form);
 
-    expect(screen.getByText(/Please enter your email and password/i)).toBeTruthy();
+    expect(screen.getAllByText(/Please enter your email and password/i).length).toBeGreaterThan(0);
   });
 });

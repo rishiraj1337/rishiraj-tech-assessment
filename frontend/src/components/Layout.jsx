@@ -7,7 +7,7 @@ const NAV_ITEMS = [
   { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
   { label: 'Workouts', path: '/workouts', icon: Dumbbell },
   { label: 'Analytics', path: '/analytics', icon: TrendingUp },
-  { label: 'Goals & Habits', path: '/goals', icon: Target },
+  // { label: 'Goals & Habits', path: '/goals', icon: Target },
   { label: 'Profile', path: '/user', icon: User },
 ];
 

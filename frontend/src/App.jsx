@@ -24,7 +24,7 @@ export default function App() {
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/workouts" element={<Workouts />} />
             <Route path="/analytics" element={<Analytics />} />
-            <Route path="/goals" element={<Goals />} />
+            {/* <Route path="/goals" element={<Goals />} /> */}
             <Route path="/user" element={<UserDetails />} />
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="*" element={<Navigate to="/dashboard" replace />} />

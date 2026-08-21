@@ -68,6 +68,15 @@ public class UserController {
         return workoutService.findByUserId(id);
     }
 
+    @GetMapping("/{id}/workouts/paged")
+    public org.springframework.data.domain.Page<WorkoutResponse> getUserWorkoutsPaged(
+            @PathVariable Long id,
+            @org.springframework.data.web.PageableDefault(size = 6, sort = "workoutDate") org.springframework.data.domain.Pageable pageable
+    ) {
+        userService.findById(id);
+        return workoutService.findByUserIdPaged(id, pageable);
+    }
+
     @GetMapping("/{id}/weekly-summary")
     public WeeklySummaryResponse getWeeklySummary(
             @PathVariable Long id,

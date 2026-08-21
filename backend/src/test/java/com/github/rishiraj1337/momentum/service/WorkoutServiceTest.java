@@ -158,6 +158,27 @@ class WorkoutServiceTest {
     }
 
     @Test
+    @DisplayName("Find paginated workouts by user ID")
+    void testFindByUserIdPaged() {
+        WorkoutLog log = new WorkoutLog();
+        log.setId(1L);
+        log.setUser(sampleUser);
+        log.setActivity("Cycling");
+        log.setDuration(60);
+        log.setValueAchieved(20.0);
+
+        PageRequest pageRequest = PageRequest.of(0, 10);
+        Page<WorkoutLog> page = new PageImpl<>(List.of(log), pageRequest, 1);
+
+        when(workoutRepository.findByUserId(1L, pageRequest)).thenReturn(page);
+
+        Page<WorkoutResponse> results = workoutService.findByUserIdPaged(1L, pageRequest);
+
+        assertEquals(1, results.getTotalElements());
+        assertEquals("Cycling", results.getContent().get(0).activity());
+    }
+
+    @Test
     @DisplayName("Delete workout by ID")
     void testDeleteWorkout() {
         WorkoutLog existing = new WorkoutLog();

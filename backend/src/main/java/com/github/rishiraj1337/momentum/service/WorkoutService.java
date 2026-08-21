@@ -68,6 +68,12 @@ public class WorkoutService {
                 .toList();
     }
 
+    @Transactional(readOnly = true)
+    public Page<WorkoutResponse> findByUserIdPaged(Long userId, Pageable pageable) {
+        return workoutRepository.findByUserId(userId, pageable)
+                .map(workoutMapper::toResponse);
+    }
+
     private WorkoutLog getWorkout(Long id) {
         return workoutRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Workout", id));
